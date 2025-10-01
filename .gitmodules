@@ -1,7 +1,3 @@
-[submodule "public"]
-	path = public
-	url = https://github.com/jacti/blog.git
-	branch = release
 [submodule "themes/hextra"]
 	path = themes/hextra
 	url = https://github.com/jacti/hextra.git
