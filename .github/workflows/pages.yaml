@@ -31,7 +31,7 @@ jobs:
           && sudo dpkg -i ${{ runner.temp }}/hugo.deb
 
       - name: Build with Hugo
-        run: hugo --gc --minify --baseURL "/blog/"
+        run: hugo --gc --minify
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
