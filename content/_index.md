@@ -1,17 +1,31 @@
 ---
-title: My Site
-toc: false
+title: jacti-log
+layout: hextra-home
 ---
 
-This is the landing page.
+{{< hextra/hero-headline >}}
+AI와 함께하는&nbsp;<br class="sm:block hidden" />개발 여정
+{{< /hextra/hero-headline >}}
 
-## Explore
+{{< hextra/hero-subtitle >}}
+학습 노트, 트러블슈팅, 그리고 데모 프로젝트를 기록합니다.
+{{< /hextra/hero-subtitle >}}
 
-{{< cards >}}
-  {{< card link="docs" title="Docs" icon="book-open" >}}
-  {{< card link="about" title="About" icon="user" >}}
+{{< hextra/hero-button text="시작하기" link="learning-log" >}}
+{{< hextra/hero-button text="데모 보기" link="playground" style="secondary" >}}
+
+## 주요 섹션
+
+{{< cards cols="3" >}}
+  {{< card link="learning-log" title="Learning Log" icon="book-open" >}}
+  AI와 함께 정리한 학습 노트
+  {{< /card >}}
+
+  {{< card link="debug-notes" title="Debug Notes" icon="bug" >}}
+  실전 트러블슈팅 사례
+  {{< /card >}}
+
+  {{< card link="playground" title="Playground" icon="beaker" >}}
+  AI 제작 데모 프로젝트
+  {{< /card >}}
 {{< /cards >}}
-
-## Documentation
-
-For more information, visit [Hextra](https://imfing.github.io/hextra).

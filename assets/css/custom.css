@@ -1,0 +1,113 @@
+/* assets/css/custom.css */
+
+/* ===========================
+   Tailwind Theme Variables
+   =========================== */
+
+@layer theme {
+  :root {
+    --hx-default-font-family: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --hx-default-mono-font-family: "JetBrains Mono", "SFMono-Regular", monospace;
+  }
+}
+
+/* ===========================
+   Primary Color (Slate + Teal)
+   =========================== */
+
+:root {
+  --primary-hue: 173deg;
+  --primary-saturation: 80%;
+  --primary-lightness: 40%;
+}
+
+/* ===========================
+   Light/Dark Mode Surface Colors
+   =========================== */
+
+:root {
+  --color-bg-primary: #f8fafc;      /* slate-50 */
+  --color-bg-secondary: #f1f5f9;    /* slate-100 */
+  --color-text-primary: #0f172a;    /* slate-900 */
+  --color-text-secondary: #475569;  /* slate-600 */
+  --color-border: #e2e8f0;          /* slate-200 */
+}
+
+:root:is(html[class~="dark"] *) {
+  --color-bg-primary: #0f172a;      /* slate-900 */
+  --color-bg-secondary: #1e293b;    /* slate-800 */
+  --color-text-primary: #e2e8f0;    /* slate-200 */
+  --color-text-secondary: #94a3b8;  /* slate-400 */
+  --color-border: #334155;          /* slate-700 */
+}
+
+/* ===========================
+   Component Customization
+   =========================== */
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.hextra-navbar {
+  background-color: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--color-border);
+  transition: border-color 0.2s ease;
+}
+
+.hextra-navbar:is(html[class~="dark"] *) {
+  background-color: rgba(15, 23, 42, 0.9);
+}
+
+.hextra-sidebar {
+  border-right: 1px solid var(--color-border);
+}
+
+.hextra-sidebar:is(html[class~="dark"] *) {
+  border-color: var(--color-border);
+}
+
+.hextra-footer {
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  padding: 2rem 0;
+}
+
+.content a:hover {
+  color: hsl(var(--primary-hue), var(--primary-saturation), var(--primary-lightness));
+  text-decoration: underline;
+}
+
+.content code:not(.code-block code) {
+  color: #0f766e; /* teal-700 */
+  background-color: rgba(20, 184, 166, 0.1);
+  padding: 0.2em 0.35em;
+  border-radius: 0.3rem;
+  font-size: 0.95em;
+}
+
+.code-block {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.code-block:is(html[class~="dark"] *) {
+  background-color: #0f172a;
+}
+
+.hextra-sidebar .active {
+  color: hsl(var(--primary-hue), var(--primary-saturation), var(--primary-lightness));
+  font-weight: 600;
+}
+
+.hextra-toc a {
+  color: var(--color-text-secondary);
+}
+
+.hextra-toc a:hover {
+  color: hsl(var(--primary-hue), var(--primary-saturation), var(--primary-lightness));
+}
