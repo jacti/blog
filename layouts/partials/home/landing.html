@@ -1,4 +1,52 @@
 <style>
+  :root {
+    --landing-background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 32%, #cffafe 68%, #f0f9ff 100%);
+    --landing-text-color: #0f172a;
+    --landing-text-shadow-base: 0 0 12px rgba(251, 191, 36, 0.45);
+    --landing-text-shadow-glow:
+      0 0 25px rgba(250, 204, 21, 0.65),
+      0 0 40px rgba(245, 158, 11, 0.45),
+      0 0 60px rgba(234, 179, 8, 0.32),
+      0 0 90px rgba(217, 119, 6, 0.18);
+    --landing-text-hover-color: #d97706;
+    --landing-letter-accent-color: #f59e0b;
+    --landing-particle-fill: rgba(251, 191, 36, 0.8);
+    --landing-particle-shadow: rgba(250, 204, 21, 0.7);
+    --landing-particle-gradient-start: rgba(251, 191, 36, 1);
+    --landing-particle-gradient-end: rgba(250, 204, 21, 0.5);
+    --landing-connection-color: rgba(234, 179, 8, 0.28);
+    --landing-canvas-fade: rgba(255, 255, 255, 0.12);
+    --landing-glow-ring-border: rgba(250, 204, 21, 0.45);
+    --landing-cursor-border: rgba(217, 119, 6, 0.7);
+    --landing-cursor-follower-border: rgba(234, 179, 8, 0.3);
+    --landing-cursor-blend-mode: normal;
+  }
+
+  html.dark {
+    --landing-background: linear-gradient(135deg, #0d1117 0%, #1a202c 30%, #0f172a 70%, #0d1117 100%);
+    --landing-text-color: #ffffff;
+    --landing-text-shadow-base:
+      0 0 25px rgba(20, 184, 166, 0.55),
+      0 0 40px rgba(20, 184, 166, 0.35);
+    --landing-text-shadow-glow:
+      0 0 35px rgba(20, 184, 166, 1),
+      0 0 55px rgba(20, 184, 166, 0.85),
+      0 0 85px rgba(20, 184, 166, 0.6),
+      0 0 110px rgba(20, 184, 166, 0.35);
+    --landing-text-hover-color: #06b6d4;
+    --landing-letter-accent-color: #22d3ee;
+    --landing-particle-fill: rgba(20, 184, 166, 0.8);
+    --landing-particle-shadow: rgba(20, 184, 166, 0.85);
+    --landing-particle-gradient-start: rgba(20, 184, 166, 1);
+    --landing-particle-gradient-end: rgba(6, 182, 212, 0.6);
+    --landing-connection-color: rgba(20, 184, 166, 0.18);
+    --landing-canvas-fade: rgba(0, 0, 0, 0.04);
+    --landing-glow-ring-border: rgba(20, 184, 166, 0.3);
+    --landing-cursor-border: rgba(20, 184, 166, 0.8);
+    --landing-cursor-follower-border: rgba(6, 182, 212, 0.4);
+    --landing-cursor-blend-mode: difference;
+  }
+
   .landing-root {
     position: fixed;
     left: 0;
@@ -6,7 +54,7 @@
     bottom: 0;
     top: var(--navbar-height, 72px);
     overflow: hidden;
-    background: linear-gradient(135deg, #0d1117 0%, #1a202c 30%, #0f172a 70%, #0d1117 100%);
+    background: var(--landing-background);
     background-size: 400% 400%;
     animation: landing-gradient-shift 18s ease infinite;
     cursor: none;
@@ -49,15 +97,15 @@
   .landing-custom-cursor {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(20, 184, 166, 0.8);
+    border: 2px solid var(--landing-cursor-border);
     border-radius: 50%;
-    mix-blend-mode: difference;
+    mix-blend-mode: var(--landing-cursor-blend-mode);
   }
 
   .landing-cursor-follower {
     width: 40px;
     height: 40px;
-    border: 1px solid rgba(6, 182, 212, 0.4);
+    border: 1px solid var(--landing-cursor-follower-border);
     border-radius: 50%;
   }
 
@@ -83,7 +131,7 @@
     left: 50%;
     width: 200%;
     height: 200%;
-    border: 2px solid rgba(20, 184, 166, 0.3);
+    border: 2px solid var(--landing-glow-ring-border);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
@@ -93,12 +141,8 @@
   .landing-main-text {
     font-size: clamp(4rem, 15vw, 12rem);
     font-weight: 900;
-    color: #ffffff;
-    text-shadow:
-      0 0 25px rgba(20, 184, 166, 0.9),
-      0 0 40px rgba(20, 184, 166, 0.7),
-      0 0 60px rgba(20, 184, 166, 0.5),
-      0 0 90px rgba(20, 184, 166, 0.3);
+    color: var(--landing-text-color);
+    text-shadow: var(--landing-text-shadow-base);
     letter-spacing: 0.05em;
     position: relative;
     display: inline-block;
@@ -115,10 +159,10 @@
     position: absolute;
     width: 4px;
     height: 4px;
-    background: radial-gradient(circle, rgba(20, 184, 166, 1) 0%, rgba(6, 182, 212, 0.6) 100%);
+    background: radial-gradient(circle, var(--landing-particle-gradient-start) 0%, var(--landing-particle-gradient-end) 100%);
     border-radius: 50%;
     pointer-events: none;
-    box-shadow: 0 0 14px rgba(20, 184, 166, 0.9);
+    box-shadow: 0 0 14px var(--landing-particle-shadow);
     z-index: 3;
     will-change: transform, opacity;
   }
@@ -164,6 +208,21 @@
     const cursorFollower = landingRoot.querySelector('.landing-cursor-follower');
     const mainText = landingRoot.querySelector('[data-landing-text]');
     const navbar = document.querySelector('.hextra-navbar');
+
+    function getThemeColors() {
+      const styles = getComputedStyle(landingRoot);
+      return {
+        textBase: styles.getPropertyValue('--landing-text-color').trim() || '#ffffff',
+        textHover: styles.getPropertyValue('--landing-text-hover-color').trim() || '#06b6d4',
+        letterAccent: styles.getPropertyValue('--landing-letter-accent-color').trim() || '#22d3ee',
+        particleFill: styles.getPropertyValue('--landing-particle-fill').trim() || 'rgba(20, 184, 166, 0.8)',
+        particleShadow: styles.getPropertyValue('--landing-particle-shadow').trim() || 'rgba(20, 184, 166, 0.85)',
+        connectionColor: styles.getPropertyValue('--landing-connection-color').trim() || 'rgba(20, 184, 166, 0.18)',
+        canvasFade: styles.getPropertyValue('--landing-canvas-fade').trim() || 'rgba(0, 0, 0, 0.04)'
+      };
+    }
+
+    let themeColors = getThemeColors();
 
     // 디바이스 성능 체크
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -285,9 +344,9 @@
     // 빠른 파티클 렌더링 (배치 처리)
     function drawParticles() {
       ctx.beginPath();
-      ctx.fillStyle = 'rgba(20, 184, 166, 0.8)';
+      ctx.fillStyle = themeColors.particleFill;
       ctx.shadowBlur = 18;
-      ctx.shadowColor = 'rgba(20, 184, 166, 0.85)';
+      ctx.shadowColor = themeColors.particleShadow;
       
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -311,7 +370,7 @@
         particleGrid.get(p.gridKey).push(i);
       }
 
-      ctx.strokeStyle = 'rgba(20, 184, 166, 0.18)';
+      ctx.strokeStyle = themeColors.connectionColor;
       ctx.lineWidth = 1;
       ctx.beginPath();
 
@@ -353,7 +412,7 @@
       const deltaTime = currentTime - lastTime;
       
       if (deltaTime >= frameInterval) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+        ctx.fillStyle = themeColors.canvasFade;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         mouseX += (targetMouseX - mouseX) * 0.1;
@@ -462,8 +521,7 @@
 
     // 글로우 애니메이션
     gsap.to('.landing-main-text', {
-      textShadow:
-        '0 0 35px rgba(20, 184, 166, 1), 0 0 55px rgba(20, 184, 166, 0.85), 0 0 85px rgba(20, 184, 166, 0.6), 0 0 110px rgba(20, 184, 166, 0.35)',
+      textShadow: 'var(--landing-text-shadow-glow)',
       duration: 2.5,
       repeat: -1,
       yoyo: true,
@@ -506,7 +564,7 @@
 
       gsap.to(letters, {
         y: -24,
-        color: '#06b6d4',
+        color: themeColors.textHover,
         duration: 0.42,
         stagger: 0.03,
         ease: 'back.out(2)',
@@ -538,7 +596,7 @@
 
       gsap.to(letters, {
         y: 0,
-        color: '#ffffff',
+        color: themeColors.textBase,
         duration: 0.42,
         stagger: 0.03,
         ease: 'back.out(2)',
@@ -561,7 +619,7 @@
         gsap.to(letter, {
           scale: 1.3,
           rotateZ: Math.random() * 24 - 12,
-          color: '#22d3ee',
+          color: themeColors.letterAccent,
           duration: 0.35,
           ease: 'back.out(3)',
           overwrite: 'auto',
@@ -570,7 +628,7 @@
       });
 
       letter.addEventListener('mouseleave', () => {
-        const targetColor = isTextHovered ? '#06b6d4' : '#ffffff';
+        const targetColor = isTextHovered ? themeColors.textHover : themeColors.textBase;
         
         gsap.to(letter, {
           scale: 1,
@@ -583,6 +641,26 @@
         });
       });
     });
+
+    const themeObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === 'class') {
+          themeColors = getThemeColors();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const targetColor = isTextHovered ? themeColors.textHover : themeColors.textBase;
+
+          gsap.to(letters, {
+            color: targetColor,
+            duration: 0.25,
+            overwrite: 'auto',
+            force3D: true
+          });
+        }
+      }
+    });
+
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
     // 랜덤 글자 애니메이션
     function randomLetterAnimation() {
@@ -643,6 +721,7 @@
       gsap.killTweensOf('*');
       particles.length = 0;
       particleGrid.clear();
+      themeObserver.disconnect();
     });
   })();
 </script>
