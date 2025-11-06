@@ -17,15 +17,7 @@ AI와 함께하는&nbsp;<br class="sm:block hidden" />개발 여정
 ## 주요 섹션
 
 {{< cards cols="3" >}}
-  {{< card link="learning-log" title="Learning Log" icon="book-open" >}}
-  AI와 함께 정리한 학습 노트
-  {{< /card >}}
-
-  {{< card link="debug-notes" title="Debug Notes" icon="bug" >}}
-  실전 트러블슈팅 사례
-  {{< /card >}}
-
-  {{< card link="playground" title="Playground" icon="beaker" >}}
-  AI 제작 데모 프로젝트
-  {{< /card >}}
+  {{< card link="learning-log" title="Learning Log" icon="book-open" subtitle="AI와 함께 정리한 학습 노트" >}}
+  {{< card link="debug-notes" title="Debug Notes" icon="bug" subtitle="실전 트러블슈팅 사례" >}}
+  {{< card link="playground" title="Playground" icon="beaker" subtitle="AI 제작 데모 프로젝트" >}}
 {{< /cards >}}
