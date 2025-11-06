@@ -43,6 +43,7 @@
     opacity: 0;
     transition: opacity 0.2s ease;
     z-index: 3;
+    will-change: transform;
   }
 
   .landing-custom-cursor {
@@ -73,6 +74,7 @@
   .landing-text-wrapper {
     position: relative;
     perspective: 1200px;
+    will-change: transform;
   }
 
   .landing-glow-ring {
@@ -85,6 +87,7 @@
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+    will-change: transform, opacity;
   }
 
   .landing-main-text {
@@ -105,6 +108,7 @@
     display: inline-block;
     opacity: 0;
     transform: translateY(120px) rotateX(95deg);
+    will-change: transform, opacity;
   }
 
   .landing-particle {
@@ -116,6 +120,7 @@
     pointer-events: none;
     box-shadow: 0 0 14px rgba(20, 184, 166, 0.9);
     z-index: 3;
+    will-change: transform, opacity;
   }
 
   @media (max-width: 768px) {
@@ -150,11 +155,33 @@
     }
 
     const canvas = landingRoot.querySelector('.landing-canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { 
+      alpha: true,
+      desynchronized: true,
+      willReadFrequently: false
+    });
     const customCursor = landingRoot.querySelector('.landing-custom-cursor');
     const cursorFollower = landingRoot.querySelector('.landing-cursor-follower');
     const mainText = landingRoot.querySelector('[data-landing-text]');
     const navbar = document.querySelector('.hextra-navbar');
+
+    // 디바이스 성능 체크
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isLowPerf = isMobile || navigator.hardwareConcurrency <= 2;
+    
+    // 파티클 수 감소 + 유도력 강화
+    const particleCount = isLowPerf ? 40 : 65;
+    const attractionForce = 0.065;
+    const attractionDistance = 140;
+    const gridSize = 150;
+    const connectionDistance = 140;
+    const connectionDistanceSq = connectionDistance * connectionDistance;
+
+    // 커서 상태 플래그
+    let isHovering = false;
+    let lastCursorX = 0;
+    let lastCursorY = 0;
+    let isTextHovered = false;
 
     function setOffsets() {
       const navHeight = navbar ? navbar.offsetHeight : 72;
@@ -163,27 +190,25 @@
     }
 
     function resizeCanvas() {
-      canvas.width = landingRoot.offsetWidth;
-      canvas.height = landingRoot.offsetHeight;
+      const dpr = Math.min(window.devicePixelRatio, 2);
+      canvas.width = landingRoot.offsetWidth * dpr;
+      canvas.height = landingRoot.offsetHeight * dpr;
+      canvas.style.width = `${landingRoot.offsetWidth}px`;
+      canvas.style.height = `${landingRoot.offsetHeight}px`;
+      ctx.scale(dpr, dpr);
     }
 
     setOffsets();
     resizeCanvas();
 
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-      setOffsets();
-      resizeCanvas();
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        setOffsets();
+        resizeCanvas();
+      }, 250);
     });
-
-    let displayWidth = window.innerWidth;
-    let displayHeight = window.innerHeight;
-
-    const resizeObserver = new ResizeObserver(() => {
-      displayWidth = window.innerWidth;
-      displayHeight = window.innerHeight;
-      resizeCanvas();
-    });
-    resizeObserver.observe(document.body);
 
     let mouseX = canvas.width / 2;
     let mouseY = canvas.height / 2;
@@ -191,17 +216,25 @@
     let targetMouseY = mouseY;
 
     const particles = [];
-    const particleCount = 100;
+    let animationId;
+    let lastTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+    let frameCount = 0;
+
+    const particleGrid = new Map();
 
     class Particle {
       constructor() {
         this.reset();
-        this.opacity = Math.random();
+        this.glowIntensity = Math.random() * 0.5 + 0.5;
+        this.gridKey = null;
       }
 
       reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        const rect = canvas.getBoundingClientRect();
+        this.x = Math.random() * rect.width;
+        this.y = Math.random() * rect.height;
         this.size = Math.random() * 3 + 1;
         this.speedX = Math.random() * 2 - 1;
         this.speedY = Math.random() * 2 - 1;
@@ -211,66 +244,134 @@
       update() {
         const dx = mouseX - this.x;
         const dy = mouseY - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const force = (120 - Math.min(distance, 120)) / 120;
+        const distanceSq = dx * dx + dy * dy;
+        const maxDistanceSq = attractionDistance * attractionDistance;
+        
+        if (distanceSq < maxDistanceSq) {
+          const force = 1 - (distanceSq / maxDistanceSq);
+          this.x += this.speedX + dx * force * attractionForce;
+          this.y += this.speedY + dy * force * attractionForce;
+        } else {
+          this.x += this.speedX;
+          this.y += this.speedY;
+        }
 
-        this.x += this.speedX + dx * force * 0.025;
-        this.y += this.speedY + dy * force * 0.025;
+        const rect = canvas.getBoundingClientRect();
+        if (this.x < 0) this.x = rect.width;
+        if (this.x > rect.width) this.x = 0;
+        if (this.y < 0) this.y = rect.height;
+        if (this.y > rect.height) this.y = 0;
 
-        if (this.x < 0) this.x = canvas.width;
-        if (this.x > canvas.width) this.x = 0;
-        if (this.y < 0) this.y = canvas.height;
-        if (this.y > canvas.height) this.y = 0;
+        this.gridKey = `${Math.floor(this.x / gridSize)},${Math.floor(this.y / gridSize)}`;
       }
 
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(20, 184, 166, ${this.opacity})`;
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = 'rgba(20, 184, 166, 0.85)';
-        ctx.fill();
-        ctx.shadowBlur = 0;
+      getAdjacentKeys() {
+        const [x, y] = this.gridKey.split(',').map(Number);
+        const keys = [];
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            keys.push(`${x + dx},${y + dy}`);
+          }
+        }
+        return keys;
       }
     }
 
-    for (let i = 0; i < particleCount; i += 1) {
+    // 파티클 초기화
+    for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle());
     }
 
-    function animate() {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      mouseX += (targetMouseX - mouseX) * 0.1;
-      mouseY += (targetMouseY - mouseY) * 0.1;
-
-      particles.forEach((particle) => {
-        particle.update();
-        particle.draw();
-      });
-
-      for (let i = 0; i < particles.length; i += 1) {
-        for (let j = i + 1; j < particles.length; j += 1) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 140) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(20, 184, 166, ${0.18 * (1 - distance / 140)})`;
-            ctx.lineWidth = 1;
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
+    // 빠른 파티클 렌더링 (배치 처리)
+    function drawParticles() {
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(20, 184, 166, 0.8)';
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = 'rgba(20, 184, 166, 0.85)';
+      
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        ctx.moveTo(p.x + p.size, p.y);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       }
-
-      requestAnimationFrame(animate);
+      
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
-    animate();
+    // 공간 분할을 사용한 최적화된 연결선 그리기
+    function updateGridAndDrawConnections() {
+      particleGrid.clear();
+      
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        if (!particleGrid.has(p.gridKey)) {
+          particleGrid.set(p.gridKey, []);
+        }
+        particleGrid.get(p.gridKey).push(i);
+      }
+
+      ctx.strokeStyle = 'rgba(20, 184, 166, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const adjacentKeys = p.getAdjacentKeys();
+
+        adjacentKeys.forEach(key => {
+          const indices = particleGrid.get(key);
+          if (indices) {
+            indices.forEach(j => {
+              if (i >= j) return;
+              
+              const other = particles[j];
+              const dx = p.x - other.x;
+              const dy = p.y - other.y;
+              const distanceSq = dx * dx + dy * dy;
+              
+              if (distanceSq < connectionDistanceSq) {
+                const distance = Math.sqrt(distanceSq);
+                const opacity = 0.18 * (1 - distance / connectionDistance);
+                ctx.globalAlpha = opacity;
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(other.x, other.y);
+              }
+            });
+          }
+        });
+      }
+      
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // 애니메이션 루프
+    function animate(currentTime) {
+      animationId = requestAnimationFrame(animate);
+      
+      const deltaTime = currentTime - lastTime;
+      
+      if (deltaTime >= frameInterval) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        mouseX += (targetMouseX - mouseX) * 0.1;
+        mouseY += (targetMouseY - mouseY) * 0.1;
+
+        for (let i = 0; i < particles.length; i++) {
+          particles[i].update();
+        }
+        
+        drawParticles();
+        updateGridAndDrawConnections();
+        
+        lastTime = currentTime - (deltaTime % frameInterval);
+        frameCount++;
+      }
+    }
+
+    animate(0);
 
     function mapEventPosition(event) {
       const rect = landingRoot.getBoundingClientRect();
@@ -280,34 +381,61 @@
       };
     }
 
-    landingRoot.addEventListener('mouseenter', () => {
-      customCursor.style.opacity = 1;
-      cursorFollower.style.opacity = 1;
-    });
+    // 커서 위치 업데이트
+    function updateCursorPosition(x, y) {
+      lastCursorX = x;
+      lastCursorY = y;
+      customCursor.style.transform = `translate(${x - 10}px, ${y - 10}px)`;
+    }
 
-    landingRoot.addEventListener('mouseleave', () => {
-      customCursor.style.opacity = 0;
-      cursorFollower.style.opacity = 0;
-    });
-
-    landingRoot.addEventListener('mousemove', (event) => {
-      const { x, y } = mapEventPosition(event);
-      targetMouseX = x;
-      targetMouseY = y;
-
-      gsap.to(customCursor, {
-        x: x - 10,
-        y: y - 10,
-        duration: 0.12,
-      });
-
+    // 커서 팔로워 업데이트
+    function updateCursorFollower(x, y) {
+      gsap.killTweensOf(cursorFollower);
+      
       gsap.to(cursorFollower, {
         x: x - 20,
         y: y - 20,
         duration: 0.35,
+        overwrite: true,
+        force3D: true
       });
-    });
+    }
 
+    // 커서 애니메이션
+    if (!isMobile) {
+      // ✓ cursorFollower 초기 위치 설정 (0, 0)
+      gsap.set(cursorFollower, { x: 0, y: 0, force3D: true });
+
+      landingRoot.addEventListener('mouseenter', () => {
+        // ✓ mouseenter 시 즉시 현재 마우스 위치로 동기화
+        gsap.set(cursorFollower, { 
+          x: lastCursorX - 20, 
+          y: lastCursorY - 20,
+          force3D: true
+        });
+        
+        customCursor.style.opacity = 1;
+        cursorFollower.style.opacity = 1;
+      });
+
+      landingRoot.addEventListener('mouseleave', () => {
+        customCursor.style.opacity = 0;
+        cursorFollower.style.opacity = 0;
+        isHovering = false;
+      });
+
+      // 마우스 이동 - 호버 상태와 무관하게 항상 추적
+      landingRoot.addEventListener('mousemove', (event) => {
+        const { x, y } = mapEventPosition(event);
+        targetMouseX = x;
+        targetMouseY = y;
+        
+        updateCursorPosition(x, y);
+        updateCursorFollower(x, y);
+      });
+    }
+
+    // 텍스트 애니메이션 설정
     const textContent = mainText.textContent;
     mainText.textContent = '';
     const letters = [];
@@ -320,6 +448,7 @@
       letters.push(span);
     });
 
+    // 초기 애니메이션
     gsap.to(letters, {
       opacity: 1,
       y: 0,
@@ -328,39 +457,52 @@
       stagger: 0.08,
       ease: 'elastic.out(1, 0.5)',
       delay: 0.25,
+      force3D: true
     });
 
+    // 글로우 애니메이션
     gsap.to('.landing-main-text', {
       textShadow:
         '0 0 35px rgba(20, 184, 166, 1), 0 0 55px rgba(20, 184, 166, 0.85), 0 0 85px rgba(20, 184, 166, 0.6), 0 0 110px rgba(20, 184, 166, 0.35)',
       duration: 2.5,
       repeat: -1,
       yoyo: true,
-      ease: 'sine.inOut',
+      ease: 'sine.inOut'
     });
 
+    // 글로우 링 애니메이션
     gsap.to('.landing-glow-ring', {
       scale: 1.25,
       opacity: 0,
       duration: 3.5,
       repeat: -1,
       ease: 'power1.out',
+      force3D: true
     });
 
-    const tiltTimeline = gsap.timeline({ repeat: -1, yoyo: true });
-    tiltTimeline.to('.landing-text-wrapper', {
+    // 3D 틸트 애니메이션
+    gsap.timeline({ repeat: -1, yoyo: true }).to('.landing-text-wrapper', {
       rotateY: 7,
       rotateX: 3,
       scale: 1.08,
       duration: 4.5,
       ease: 'sine.inOut',
+      force3D: true
     });
 
+    // 텍스트 전체 호버 이벤트
     mainText.addEventListener('mouseenter', () => {
-      gsap.to(customCursor, {
-        scale: 2,
-        duration: 0.3,
-      });
+      isHovering = true;
+      isTextHovered = true;
+
+      if (!isMobile) {
+        gsap.to(customCursor, {
+          scale: 2,
+          duration: 0.3,
+          overwrite: true,
+          force3D: true
+        });
+      }
 
       gsap.to(letters, {
         y: -24,
@@ -368,20 +510,31 @@
         duration: 0.42,
         stagger: 0.03,
         ease: 'back.out(2)',
+        overwrite: true,
+        force3D: true
       });
 
       gsap.to('.landing-text-wrapper', {
         scale: 1.12,
         duration: 0.55,
         ease: 'back.out(1.8)',
+        overwrite: true,
+        force3D: true
       });
     });
 
     mainText.addEventListener('mouseleave', () => {
-      gsap.to(customCursor, {
-        scale: 1,
-        duration: 0.3,
-      });
+      isHovering = false;
+      isTextHovered = false;
+
+      if (!isMobile) {
+        gsap.to(customCursor, {
+          scale: 1,
+          duration: 0.3,
+          overwrite: true,
+          force3D: true
+        });
+      }
 
       gsap.to(letters, {
         y: 0,
@@ -389,55 +542,70 @@
         duration: 0.42,
         stagger: 0.03,
         ease: 'back.out(2)',
+        overwrite: true,
+        force3D: true
       });
 
       gsap.to('.landing-text-wrapper', {
         scale: 1,
         duration: 0.55,
         ease: 'back.out(1.8)',
+        overwrite: true,
+        force3D: true
       });
     });
 
+    // 개별 글자 호버
     letters.forEach((letter) => {
       letter.addEventListener('mouseenter', () => {
         gsap.to(letter, {
           scale: 1.3,
           rotateZ: Math.random() * 24 - 12,
+          color: '#22d3ee',
           duration: 0.35,
           ease: 'back.out(3)',
+          overwrite: 'auto',
+          force3D: true
         });
       });
 
       letter.addEventListener('mouseleave', () => {
+        const targetColor = isTextHovered ? '#06b6d4' : '#ffffff';
+        
         gsap.to(letter, {
           scale: 1,
           rotateZ: 0,
+          color: targetColor,
           duration: 0.35,
           ease: 'back.out(2)',
+          overwrite: 'auto',
+          force3D: true
         });
       });
     });
 
+    // 랜덤 글자 애니메이션
     function randomLetterAnimation() {
       const randomLetter = letters[Math.floor(Math.random() * letters.length)];
-
       gsap.to(randomLetter, {
         y: -18,
         duration: 0.6,
         ease: 'power2.out',
         yoyo: true,
         repeat: 1,
+        overwrite: 'auto',
+        force3D: true
       });
-
       setTimeout(randomLetterAnimation, Math.random() * 2800 + 2000);
     }
 
     setTimeout(randomLetterAnimation, 2200);
 
+    // 클릭 파티클 효과
     landingRoot.addEventListener('click', (event) => {
       const { x, y } = mapEventPosition(event);
 
-      for (let i = 0; i < 12; i += 1) {
+      for (let i = 0; i < 12; i++) {
         const particle = document.createElement('div');
         particle.className = 'landing-particle';
         particle.style.left = `${x}px`;
@@ -445,25 +613,36 @@
         landingRoot.appendChild(particle);
 
         const angle = (Math.PI * 2 * i) / 12;
-        const distance = 120;
+        const distance = 180;
 
         gsap.to(particle, {
           x: Math.cos(angle) * distance,
           y: Math.sin(angle) * distance,
           opacity: 0,
-          duration: 1.15,
+          duration: 1.5,
           ease: 'power2.out',
           onComplete: () => particle.remove(),
+          force3D: true
         });
       }
 
       gsap.to('.landing-main-text', {
         scale: 1.12,
-        duration: 0.12,
+        duration: 0.35,
         yoyo: true,
         repeat: 1,
         ease: 'power2.inOut',
+        overwrite: true,
+        force3D: true
       });
+    });
+
+    // 메모리 정리
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(animationId);
+      gsap.killTweensOf('*');
+      particles.length = 0;
+      particleGrid.clear();
     });
   })();
 </script>
