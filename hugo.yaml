@@ -55,12 +55,11 @@ menu:
       params:
         icon: github
     - identifier: language
-      name: Language
+      name: Theme
       weight: 7
       params:
-        type: language-switch
+        type: theme-toggle
         label: false
-        icon: globe-alt
 
 params:
   navbar:
@@ -71,10 +70,12 @@ params:
     default: system
     displayToggle: true
 
+  sidebar:
+    display_bottom_switches: false
+
   footer:
     displayCopyright: true
     displayPoweredBy: true
 
   editURL:
-    enable: true
-    base: "https://github.com/jacti/blog-designer/edit/main/content"
+    enable: false

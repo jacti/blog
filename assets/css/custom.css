@@ -33,7 +33,7 @@
   --color-border: #e2e8f0;          /* slate-200 */
 }
 
-:root:is(html[class~="dark"] *) {
+html.dark {
   --color-bg-primary: #0f172a;      /* slate-900 */
   --color-bg-secondary: #1e293b;    /* slate-800 */
   --color-text-primary: #e2e8f0;    /* slate-200 */
@@ -57,7 +57,7 @@ body {
   transition: border-color 0.2s ease;
 }
 
-.hextra-navbar:is(html[class~="dark"] *) {
+html.dark .hextra-navbar {
   background-color: rgba(15, 23, 42, 0.9);
 }
 
@@ -65,7 +65,7 @@ body {
   border-right: 1px solid var(--color-border);
 }
 
-.hextra-sidebar:is(html[class~="dark"] *) {
+html.dark .hextra-sidebar {
   border-color: var(--color-border);
 }
 
@@ -95,7 +95,7 @@ body {
   overflow: hidden;
 }
 
-.code-block:is(html[class~="dark"] *) {
+html.dark .code-block {
   background-color: #0f172a;
 }
 

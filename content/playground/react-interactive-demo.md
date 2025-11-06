@@ -19,14 +19,18 @@ React Hooks와 상태 머신을 조합해서 상태 전이를 시각적으로 �
 
 ## 체크리스트
 
-{{< steps >}}
-{{< step title="상태 차트 설계" >}}
+{{% steps %}}
+
+### 상태 차트 설계
+
 XState로 상태와 이벤트를 다이어그램으로 정의합니다.
-{{< /step >}}
-{{< step title="UI 연결" >}}
+
+### UI 연결
+
 React Hook으로 상태 전이를 UI 동작에 매핑합니다.
-{{< /step >}}
-{{< step title="문서화" >}}
+
+### 문서화
+
 데모 사용법을 README와 영상으로 정리합니다.
-{{< /step >}}
-{{< /steps >}}
+
+{{% /steps %}}

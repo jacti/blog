@@ -15,19 +15,21 @@ Error: failed to extract shortcode: template for shortcode "cards" not found
 
 ## 해결 과정
 
-{{< steps >}}
-{{< step title="테마 상태 확인" >}}
+{{% steps %}}
+
+### 테마 상태 확인
+
 Git Submodule로 포함된 Hextra 테마가 최신 커밋인지 확인했습니다.
-{{< /step >}}
 
-{{< step title="서브모듈 초기화" >}}
+### 서브모듈 초기화
+
 `git submodule update --init --recursive` 명령으로 테마 파일을 다시 내려받았습니다.
-{{< /step >}}
 
-{{< step title="캐시 정리" >}}
+### 캐시 정리
+
 `hugo --gc`로 캐시를 정리한 후 다시 빌드하니 문제가 해결되었습니다.
-{{< /step >}}
-{{< /steps >}}
+
+{{% /steps %}}
 
 ## 배운 점
 

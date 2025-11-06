@@ -1,0 +1,44 @@
+{{/* Search */}}
+{{- $ctx := . -}}
+{{- if (site.Params.search.enable | default true) -}}
+  {{- $searchType := site.Params.search.type | default "flexsearch" -}}
+  {{- if eq $searchType "flexsearch" -}}
+    {{- $bundleStore := newScratch -}}
+    {{- with site.Params.search.flexsearch.local_bundle -}}
+      {{- with resources.Get . -}}
+        {{- $bundleStore.Set "bundle" . -}}
+      {{- else -}}
+        {{- warnf "Configured FlexSearch bundle %q not found; falling back to CDN download." . -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if not ($bundleStore.Get "bundle") -}}
+      {{- $flexSearchVersion := site.Params.search.flexsearch.version | default "0.8.143" -}}
+      {{- $bundleName := printf "flexsearch.bundle%s.js" (cond hugo.IsProduction ".min" ".debug") -}}
+      {{- $flexSearchJsUrl := printf "https://cdn.jsdelivr.net/npm/flexsearch@%s/dist/%s" $flexSearchVersion $bundleName -}}
+      {{- with try (resources.GetRemote $flexSearchJsUrl) -}}
+        {{- if .Err -}}
+          {{- warnf "Could not retrieve FlexSearch js file from %s. Search scripts will be skipped. Reason: %s." $flexSearchJsUrl .Err -}}
+        {{- else -}}
+          {{- with resources.Copy (printf "js/%s" $bundleName) .Value -}}
+            {{- $bundleStore.Set "bundle" . -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- with $bundleStore.Get "bundle" -}}
+      {{- $bundle := . -}}
+      {{- $jsSearchScript := printf "%s.search.js" $ctx.Language.Lang -}}
+      {{- $jsSearch := resources.Get "js/flexsearch.js" | resources.ExecuteAsTemplate $jsSearchScript $ctx -}}
+      {{- if hugo.IsProduction -}}
+        {{- $bundle = $bundle | fingerprint -}}
+        {{- $jsSearch = $jsSearch | minify | fingerprint -}}
+      {{- end -}}
+      <script defer src="{{ $bundle.RelPermalink }}"{{- if hugo.IsProduction }} integrity="{{ $bundle.Data.Integrity }}" crossorigin="anonymous"{{- end -}}></script>
+      <script defer src="{{ $jsSearch.RelPermalink }}"{{- if hugo.IsProduction }} integrity="{{ $jsSearch.Data.Integrity }}"{{- end -}}></script>
+    {{- else -}}
+      {{- warnf "FlexSearch bundle unavailable; disabling search scripts for this build." -}}
+    {{- end -}}
+  {{- else -}}
+    {{- warnf `search type "%s" is not supported` $searchType -}}
+  {{- end -}}
+{{- end -}}

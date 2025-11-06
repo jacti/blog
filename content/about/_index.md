@@ -17,7 +17,7 @@ layout: page
   {{< hextra/feature-card
     title="Full-stack" 
     subtitle="React · Next.js · Node.js 기반 제품 개발"
-    icon="layers"
+    icon="cube"
   >}}
 
   {{< hextra/feature-card
@@ -29,7 +29,7 @@ layout: page
   {{< hextra/feature-card
     title="Problem solving"
     subtitle="서비스 장애 대응과 원인 분석에 강점"
-    icon="bug"
+    icon="shield-exclamation"
   >}}
 
   {{< hextra/feature-card
