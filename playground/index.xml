@@ -1,0 +1,92 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Playground</title><link>https://blog.girae.me/playground/</link><description>Recent content in Playground on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Wed, 22 Jan 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/playground/index.xml" rel="self" type="application/rss+xml"/><item><title>React 인터랙션 데모</title><link>https://blog.girae.me/playground/react-interactive-demo/</link><pubDate>Wed, 22 Jan 2025 00:00:00 +0000</pubDate><guid>https://blog.girae.me/playground/react-interactive-demo/</guid><description>
+&lt;h2>프로젝트 개요&lt;span class="hx:absolute hx:-mt-20" id="프로젝트-개요">&lt;/span>
+&lt;a href="#%ed%94%84%eb%a1%9c%ec%a0%9d%ed%8a%b8-%ea%b0%9c%ec%9a%94" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>React Hooks와 상태 머신을 조합해서 상태 전이를 시각적으로 확인할 수 있는 미니 앱입니다.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">실제 데모 HTML 파일은 &lt;code>static/demos/react-interactive/index.html&lt;/code> 경로에 배치할 예정입니다.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h2>특징&lt;span class="hx:absolute hx:-mt-20" id="특징">&lt;/span>
+&lt;a href="#%ed%8a%b9%ec%a7%95" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>상태 변경 기록을 타임라인으로 표시&lt;/li>
+&lt;li>컴포넌트 간 이벤트 흐름을 시각적으로 표현&lt;/li>
+&lt;li>Storybook으로 작성된 UI 스토리와 연동&lt;/li>
+&lt;/ul>
+&lt;h2>체크리스트&lt;span class="hx:absolute hx:-mt-20" id="체크리스트">&lt;/span>
+&lt;a href="#%ec%b2%b4%ed%81%ac%eb%a6%ac%ec%8a%a4%ed%8a%b8" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;div class="hextra-steps hx:ml-4 hx:mb-12 hx:ltr:border-l hx:rtl:border-r hx:border-gray-200 hx:ltr:pl-6 hx:rtl:pr-6 hx:dark:border-neutral-800 [counter-reset:step]">
+&lt;h3>상태 차트 설계&lt;span class="hx:absolute hx:-mt-20" id="상태-차트-설계">&lt;/span>
+&lt;a href="#%ec%83%81%ed%83%9c-%ec%b0%a8%ed%8a%b8-%ec%84%a4%ea%b3%84" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>XState로 상태와 이벤트를 다이어그램으로 정의합니다.&lt;/p>
+&lt;h3>UI 연결&lt;span class="hx:absolute hx:-mt-20" id="ui-연결">&lt;/span>
+&lt;a href="#ui-%ec%97%b0%ea%b2%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>React Hook으로 상태 전이를 UI 동작에 매핑합니다.&lt;/p>
+&lt;h3>문서화&lt;span class="hx:absolute hx:-mt-20" id="문서화">&lt;/span>
+&lt;a href="#%eb%ac%b8%ec%84%9c%ed%99%94" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>데모 사용법을 README와 영상으로 정리합니다.&lt;/p>
+&lt;/div></description></item><item><title>Three.js 오브젝트 데모</title><link>https://blog.girae.me/playground/threejs-orbit/</link><pubDate>Sat, 18 Jan 2025 00:00:00 +0000</pubDate><guid>https://blog.girae.me/playground/threejs-orbit/</guid><description>
+&lt;p>Three.js를 사용해 조작 가능한 3D 오브젝트를 렌더링합니다.&lt;/p>
+&lt;ul>
+&lt;li>마우스 드래그로 카메라 궤도 조작&lt;/li>
+&lt;li>조명과 머티리얼 프리셋 비교 토글&lt;/li>
+&lt;li>성능 측정을 위한 FPS 모니터&lt;/li>
+&lt;/ul>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-green-200 hx:bg-green-100 hx:text-green-900 hx:dark:border-green-200/30 hx:dark:bg-green-900/30 hx:dark:text-green-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">데모 HTML은 &lt;code>static/demos/threejs-orbit/index.html&lt;/code>에 위치하게 됩니다.&lt;/div>
+&lt;/div>
+&lt;/div></description></item><item><title>D3 데이터 시각화 데모</title><link>https://blog.girae.me/playground/d3-visualizer/</link><pubDate>Sun, 12 Jan 2025 00:00:00 +0000</pubDate><guid>https://blog.girae.me/playground/d3-visualizer/</guid><description>
+&lt;p>다중 시리즈 데이터를 라인 차트와 막대 차트로 동시에 표현하는 시각화 예제입니다.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">데이터는 &lt;code>static/data/demo/d3-timeseries.json&lt;/code>에서 로드하도록 구성할 예정입니다.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h2>주요 기능&lt;span class="hx:absolute hx:-mt-20" id="주요-기능">&lt;/span>
+&lt;a href="#%ec%a3%bc%ec%9a%94-%ea%b8%b0%eb%8a%a5" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>줌/팬 인터랙션&lt;/li>
+&lt;li>데이터셋 전환 토글&lt;/li>
+&lt;li>툴팁과 강조 애니메이션&lt;/li>
+&lt;/ul></description></item><item><title>AI 챗봇 데모</title><link>https://blog.girae.me/playground/ai-chatbot/</link><pubDate>Sun, 05 Jan 2025 00:00:00 +0000</pubDate><guid>https://blog.girae.me/playground/ai-chatbot/</guid><description>
+&lt;p>LLM 기반 챗봇을 웹 인터페이스로 구현한 프로토타입입니다.&lt;/p>
+&lt;h2>시스템 구성&lt;span class="hx:absolute hx:-mt-20" id="시스템-구성">&lt;/span>
+&lt;a href="#%ec%8b%9c%ec%8a%a4%ed%85%9c-%ea%b5%ac%ec%84%b1" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>
+&lt;div class="hextra-scrollbar hx:overflow-x-auto hx:overflow-y-hidden hx:overscroll-x-contain">
+&lt;div
+class="hx:mt-4 hx:flex hx:w-max hx:min-w-full hx:border-b hx:border-gray-200 hx:pb-px hx:dark:border-neutral-800"
+>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-00-0"aria-selected="true"
+tabindex="0"
+data-state="selected"
+>프론트엔드&lt;/button>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-00-1"
+>백엔드&lt;/button>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-00-2"
+>감시&lt;/button>&lt;/div>
+&lt;/div>
+&lt;div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-00-0"
+role="tabpanel"tabindex="0"
+data-state="selected"
+>Next.js와 Tailwind CSS로 채팅 UI를 구성하고, 응답 스트리밍을 지원합니다.&lt;/div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-00-1"
+role="tabpanel">Edge Function에서 프롬프트 가공과 토큰 제한을 처리합니다.&lt;/div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-00-2"
+role="tabpanel">로그와 프롬프트/응답 샘플을 Supabase에 저장합니다.&lt;/div>&lt;/div>
+&lt;h2>향후 개선 아이디어&lt;span class="hx:absolute hx:-mt-20" id="향후-개선-아이디어">&lt;/span>
+&lt;a href="#%ed%96%a5%ed%9b%84-%ea%b0%9c%ec%84%a0-%ec%95%84%ec%9d%b4%eb%94%94%ec%96%b4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>음성 입력과 TTS 출력 추가&lt;/li>
+&lt;li>안전 가이드라인을 위한 금칙어 필터링&lt;/li>
+&lt;li>대화 QA 데이터셋으로 회귀 테스트 자동화&lt;/li>
+&lt;/ul></description></item></channel></rss>

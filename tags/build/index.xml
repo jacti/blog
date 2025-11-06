@@ -1,0 +1,24 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Build</title><link>https://blog.girae.me/tags/build/</link><description>Recent content in Build on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Fri, 10 Jan 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/build/index.xml" rel="self" type="application/rss+xml"/><item><title>Hugo 빌드 오류 해결기</title><link>https://blog.girae.me/debug-notes/hugo-build-missing-shortcode/</link><pubDate>Fri, 10 Jan 2025 00:00:00 +0000</pubDate><guid>https://blog.girae.me/debug-notes/hugo-build-missing-shortcode/</guid><description>
+&lt;h2>문제 상황&lt;span class="hx:absolute hx:-mt-20" id="문제-상황">&lt;/span>
+&lt;a href="#%eb%ac%b8%ec%a0%9c-%ec%83%81%ed%99%a9" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>배포 파이프라인에서 &lt;code>cards&lt;/code> 숏코드를 찾지 못한다는 오류가 발생했습니다.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-green-200 hx:bg-green-100 hx:text-green-900 hx:dark:border-green-200/30 hx:dark:bg-green-900/30 hx:dark:text-green-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">Error: failed to extract shortcode: template for shortcode &amp;ldquo;cards&amp;rdquo; not found&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h2>해결 과정&lt;span class="hx:absolute hx:-mt-20" id="해결-과정">&lt;/span>
+&lt;a href="#%ed%95%b4%ea%b2%b0-%ea%b3%bc%ec%a0%95" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;div class="hextra-steps hx:ml-4 hx:mb-12 hx:ltr:border-l hx:rtl:border-r hx:border-gray-200 hx:ltr:pl-6 hx:rtl:pr-6 hx:dark:border-neutral-800 [counter-reset:step]">
+&lt;h3>테마 상태 확인&lt;span class="hx:absolute hx:-mt-20" id="테마-상태-확인">&lt;/span>
+&lt;a href="#%ed%85%8c%eb%a7%88-%ec%83%81%ed%83%9c-%ed%99%95%ec%9d%b8" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>Git Submodule로 포함된 Hextra 테마가 최신 커밋인지 확인했습니다.&lt;/p>
+&lt;h3>서브모듈 초기화&lt;span class="hx:absolute hx:-mt-20" id="서브모듈-초기화">&lt;/span>
+&lt;a href="#%ec%84%9c%eb%b8%8c%eb%aa%a8%eb%93%88-%ec%b4%88%ea%b8%b0%ed%99%94" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>git submodule update --init --recursive&lt;/code> 명령으로 테마 파일을 다시 내려받았습니다.&lt;/p>
+&lt;h3>캐시 정리&lt;span class="hx:absolute hx:-mt-20" id="캐시-정리">&lt;/span>
+&lt;a href="#%ec%ba%90%ec%8b%9c-%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>hugo --gc&lt;/code>로 캐시를 정리한 후 다시 빌드하니 문제가 해결되었습니다.&lt;/p>
+&lt;/div>
+&lt;h2>배운 점&lt;span class="hx:absolute hx:-mt-20" id="배운-점">&lt;/span>
+&lt;a href="#%eb%b0%b0%ec%9a%b4-%ec%a0%90" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>테마와 모듈 방식은 혼용하지 않는다.&lt;/li>
+&lt;li>빌드 오류가 발생하면 서브모듈, 캐시, 버전 요구사항을 순서대로 점검한다.&lt;/li>
+&lt;li>에러 로그를 빠르게 공유할 수 있도록 스니펫을 정리해 두면 재발 방지에 도움이 된다.&lt;/li>
+&lt;/ul></description></item></channel></rss>
