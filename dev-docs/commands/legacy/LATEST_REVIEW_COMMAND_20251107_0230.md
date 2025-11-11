@@ -219,7 +219,6 @@ language: "Language"
 #### 누락된 내용 (스니펫 가이드 기준)
 ```yaml
 ❌ copyright: "© 2025 jacti-log."
-❌ poweredBy: "Hextra로 구동"
 ❌ changeLanguage: "언어 변경"
 ❌ readMore: "더 보기"
 ❌ editThisPage: "이 페이지 수정"

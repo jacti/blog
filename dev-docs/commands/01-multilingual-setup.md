@@ -124,7 +124,6 @@ params:
 ```yaml
 # 기본 레이블
 copyright: "© 2025 jacti-log."
-poweredBy: "Hextra로 구동"
 changeLanguage: "언어 변경"
 
 # 네비게이션
@@ -146,7 +145,6 @@ previous: "이전"
 ```yaml
 # Basic labels
 copyright: "© 2025 jacti-log."
-poweredBy: "Powered by Hextra"
 changeLanguage: "Change language"
 
 # Navigation
@@ -190,8 +188,8 @@ menu:
 ```yaml
 params:
   footer:
-    displayCopyright: true   # 저작권 표시
-    displayPoweredBy: true   # "Powered by Hextra" 표시
+    displayCopyright: false   # 저작권 표시
+    displayPoweredBy: false   # "Powered by Hextra" 표시
 ```
 
 ---

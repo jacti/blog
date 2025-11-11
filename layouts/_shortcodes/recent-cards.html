@@ -1,0 +1,29 @@
+{{- /*
+A shortcode to display recent pages as cards.
+
+@param {number} limit The maximum number of pages to display (default: 5).
+@param {number} cols The number of columns for the card grid (default: 2).
+
+@example {{< recent-cards limit="5" cols="2" >}}
+*/ -}}
+
+{{- $limit := .Get "limit" | default 5 | int -}}
+{{- $cols := .Get "cols" | default 2 -}}
+{{- $pages := .Page.RegularPages.ByDate.Reverse -}}
+
+{{- if gt (len $pages) 0 -}}
+<div class="hextra-cards hx:mt-4 hx:gap-4 hx:grid not-prose" style="--hextra-cards-grid-cols: {{ $cols }};">
+  {{- range first $limit $pages -}}
+    {{- $summary := .Summary | plainify | truncate 100 -}}
+    {{- partial "shortcodes/card" (dict
+      "page"      .
+      "link"      .RelPermalink
+      "title"     .Title
+      "icon"      "document-text"
+      "subtitle"  $summary
+    ) -}}
+  {{- end -}}
+</div>
+{{- else -}}
+  <p class="hx:text-gray-500 hx:dark:text-gray-400 hx:mt-4">아직 작성된 글이 없습니다.</p>
+{{- end -}}

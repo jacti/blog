@@ -20,6 +20,20 @@ theme: hextra
 
 markup:
   goldmark:
+    extensions:
+      passthrough:
+        enable: true
+        delimiters:
+          block:
+          - - \[
+            - \]
+          - - $$
+            - $$
+          inline:
+          - - \(
+            - \)
+          - - $
+            - $
     renderer:
       unsafe: true
   highlight:
@@ -35,28 +49,32 @@ menu:
       name: Debug Notes
       pageRef: /debug-notes
       weight: 2
+    - identifier: memo
+      name: Memo
+      pageRef: /memo
+      weight: 3
     - identifier: playground
       name: Playground
       pageRef: /playground
-      weight: 3
+      weight: 4
     - identifier: about
       name: About
       pageRef: /about
-      weight: 4
+      weight: 5
     - identifier: search
       name: Search
-      weight: 5
+      weight: 6
       params:
         type: search
     - identifier: github
       name: GitHub
-      weight: 6
+      weight: 7
       url: "https://github.com/jacti"
       params:
         icon: github
     - identifier: language
       name: Theme
-      weight: 7
+      weight: 8
       params:
         type: theme-toggle
         label: false
@@ -79,3 +97,7 @@ params:
 
   editURL:
     enable: false
+
+  page:
+    tabs:
+      sync: true
