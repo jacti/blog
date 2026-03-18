@@ -2362,9 +2362,8 @@ title="Copy code"
 &lt;/div>
 &lt;/div>
 &lt;p>&lt;strong>예시:&lt;/strong>&lt;/p>
-&lt;p>&lt;script src="https://gist.github.com/spf13/7896402.js">&lt;/script>
-&lt;script src="https://gist.github.com/spf13/7896402.js?file=img.html">&lt;/script>
-&lt;/p>
+&lt;p>{{&amp;lt; gist spf13 7896402 &amp;gt;}}
+{{&amp;lt; gist spf13 7896402 &amp;ldquo;img.html&amp;rdquo; &amp;gt;}}&lt;/p>
 &lt;p>&lt;strong>참고:&lt;/strong>&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>username&lt;/code>: GitHub 사용자명&lt;/li>

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS 연산자 퀴즈 — ch07</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --accent: hsl(173, 80%, 36%);
+  --accent-light: hsl(173, 80%, 94%);
+  --correct: hsl(142, 71%, 45%);
+  --correct-light: hsl(142, 71%, 93%);
+  --wrong: hsl(0, 84%, 60%);
+  --wrong-light: hsl(0, 84%, 95%);
+  --border: #e2e8f0;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --card-bg: #ffffff;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --bg-secondary: #1e293b;
+    --text: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --accent-light: hsl(173, 80%, 15%);
+    --correct-light: hsl(142, 50%, 15%);
+    --wrong-light: hsl(0, 50%, 15%);
+    --border: #334155;
+    --card-bg: #1e293b;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  line-height: 1.7;
+}
+
+.container {
+  max-width: 680px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- Header --- */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 24px 0;
+}
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* --- Progress bar --- */
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.progress-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  min-width: 52px;
+}
+.progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* --- Card --- */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.card.slide-in {
+  animation: slideIn 0.35s ease forwards;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --- Code block --- */
+.code-block {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 20px 24px;
+  border-radius: 8px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  margin: 16px 0 24px;
+  overflow-x: auto;
+}
+
+/* --- Options --- */
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.option-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+.option-btn.selected { border-color: var(--accent); background: var(--accent-light); }
+.option-btn.correct { border-color: var(--correct); background: var(--correct-light); }
+.option-btn.wrong { border-color: var(--wrong); background: var(--wrong-light); }
+.option-btn:disabled { cursor: default; opacity: 0.85; }
+.option-btn:disabled:hover { border-color: var(--border); background: var(--card-bg); }
+.option-btn.correct:disabled:hover { border-color: var(--correct); background: var(--correct-light); }
+.option-btn.wrong:disabled:hover { border-color: var(--wrong); background: var(--wrong-light); }
+
+.option-marker {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.option-btn.selected .option-marker { border-color: var(--accent); background: var(--accent); color: #fff; }
+.option-btn.correct .option-marker { border-color: var(--correct); background: var(--correct); color: #fff; }
+.option-btn.wrong .option-marker { border-color: var(--wrong); background: var(--wrong); color: #fff; }
+
+/* --- Input (Q9) --- */
+.input-wrap {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.input-answer {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-answer:focus { border-color: var(--accent); }
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; filter: none; }
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+.btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* --- Explanation --- */
+.explanation {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+.result-badge.correct { background: var(--correct-light); color: var(--correct); }
+.result-badge.wrong { background: var(--wrong-light); color: var(--wrong); }
+
+.explanation-text {
+  font-size: 0.95rem;
+  line-height: 1.85;
+  color: var(--text);
+}
+.explanation-text strong { color: var(--accent); }
+.explanation-text code {
+  background: var(--bg-secondary);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.88em;
+}
+.explanation-text .code-example {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin: 12px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.explanation-text p { margin-bottom: 12px; }
+
+/* --- Editor --- */
+.editor-section {
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.editor-container {
+  min-height: 80px;
+}
+.editor-output {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--code-bg);
+  color: #a7f3d0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  min-height: 36px;
+  white-space: pre-wrap;
+}
+.editor-output:empty::before {
+  content: '// 실행 버튼을 눌러보세요';
+  color: #64748b;
+}
+.btn-run {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-run:hover { filter: brightness(1.1); }
+
+/* --- Result page --- */
+.result-page { text-align: center; }
+.result-page h2 { font-size: 1.4rem; margin-bottom: 20px; }
+.score-display {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin: 8px 0;
+}
+.score-bar-wrap {
+  max-width: 300px;
+  margin: 16px auto 32px;
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+  transition: width 0.8s ease;
+}
+.wrong-list {
+  text-align: left;
+  margin: 0 auto;
+  max-width: 400px;
+}
+.wrong-list h3 {
+  font-size: 0.9rem;
+  color: var(--wrong);
+  margin-bottom: 10px;
+}
+.wrong-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+.wrong-item code { font-family: 'SF Mono', 'Fira Code', monospace; }
+.wrong-item .btn-review {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+}
+.wrong-item .btn-review:hover { background: var(--border); }
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+/* --- Start page --- */
+.start-page { text-align: center; padding: 48px 32px; }
+.start-page h2 { font-size: 1.6rem; margin-bottom: 12px; }
+.start-page p { color: var(--text-secondary); margin-bottom: 32px; }
+.start-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+.tag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .card { padding: 20px; }
+  .code-block { font-size: 1rem; padding: 16px; }
+  .score-display { font-size: 2.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>JS 연산자 퀴즈</h1>
+    <p>ch07. 연산자 — 코드의 결과를 맞춰보세요</p>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script type="module">
+// --- CodeMirror ---
+import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6.0.1';
+import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6.2.2';
+import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6.1.2';
+
+// --- Quiz Data ---
+const quizData = [
+  {
+    id: 1,
+    code: '+true',
+    type: 'choice',
+    options: ['1', 'NaN', '"true"', 'TypeError'],
+    answer: '1',
+    editorCode: `// + 단항 연산자: 다양한 타입을 숫자로 변환\nconsole.log("+true  →", +true);\nconsole.log("+false →", +false);\nconsole.log("+null  →", +null);\nconsole.log("+undefined →", +undefined);\nconsole.log("+'42'  →", +'42');\nconsole.log("+'42px' →", +'42px');`,
+    explanation: `
+<p><code>+</code>가 숫자 앞에 붙는 건 익숙하죠? <code>+3</code>처럼요. 그런데 <code>+true</code>는 뭘까요?</p>
+<p><code>+</code> 단항 연산자는 사실 <strong>숫자 변환기</strong>예요. 피연산자를 숫자 타입으로 바꿔주는 게 유일한 역할이에요. 내부적으로 <code>Number()</code> 함수와 완전히 같은 동작을 해요 — 둘 다 ECMAScript 스펙의 <code>ToNumber()</code>라는 추상 연산을 호출하거든요.</p>
+<p>그래서 <code>+true</code>는 <code>Number(true)</code>와 동일하고, 스펙에서 <code>true</code>는 <code>1</code>, <code>false</code>는 <code>0</code>으로 정의하고 있어요.</p>
+<div class="code-example">+true       // 1
++false      // 0
++null       // 0
++undefined  // NaN — null은 0인데 undefined는 NaN이에요
++'42'       // 42
++'42px'     // NaN — 숫자가 아닌 문자가 섞이면 NaN</div>
+<p>그러면 <code>Number()</code>가 있는데 왜 <code>+</code>가 따로 있을까요? 기능은 같지만 <strong>짧게 쓸 수 있다</strong>는 장점이 있어요. 실무에서 <code>+new Date()</code>로 타임스탬프 변환, <code>+inputStr</code>로 문자열→숫자 변환 패턴을 종종 보게 돼요.</p>
+`
+  },
+  {
+    id: 2,
+    code: '+[]',
+    type: 'choice',
+    options: ['0', 'NaN', '""', 'TypeError'],
+    answer: '0',
+    editorCode: `// 배열의 ToPrimitive → toString() → ToNumber()\nconsole.log("+[]     →", +[]);\nconsole.log("+[1]    →", +[1]);\nconsole.log("+[1,2]  →", +[1,2]);\n\n// 변환 과정을 단계별로 확인\nconsole.log("[].toString()    →", [].toString());    // ""\nconsole.log("[1].toString()   →", [1].toString());   // "1"\nconsole.log("[1,2].toString() →", [1,2].toString()); // "1,2"`,
+    explanation: `
+<p>빈 배열에 <code>+</code>를 붙이면 <code>0</code>이 나와요. 직관적이지 않죠? 이걸 이해하려면 JavaScript가 객체를 원시값으로 바꾸는 과정을 알아야 해요.</p>
+<p><code>+</code> 단항 연산자가 배열을 만나면 이런 순서로 변환이 일어나요:</p>
+<p>1. <code>ToPrimitive([])</code> 호출 → 배열의 <code>toString()</code> 실행<br>
+2. <code>[].toString()</code> → <code>""</code> (빈 문자열)<br>
+3. <code>ToNumber("")</code> → <code>0</code></p>
+<div class="code-example">+[]      // 0    — [].toString() → "" → 0
++[1]     // 1    — [1].toString() → "1" → 1
++[1, 2]  // NaN  — [1,2].toString() → "1,2" → 파싱 불가</div>
+<p>핵심은 배열이 직접 숫자가 되는 게 아니라, <strong>toString()을 거쳐 문자열이 된 다음 숫자로 변환</strong>된다는 거예요. 중간에 문자열을 거친다는 걸 알면 결과를 예측할 수 있어요.</p>
+`
+  },
+  {
+    id: 3,
+    code: "false + '1'",
+    type: 'choice',
+    options: ['"false1"', '1', '"01"', 'NaN'],
+    answer: '"false1"',
+    editorCode: `// 이항 +: 문자열이 하나라도 있으면 문자열 연결\nconsole.log("false + '1' →", false + '1');\nconsole.log("true + '1'  →", true + '1');\nconsole.log("null + '1'  →", null + '1');\n\n// 문자열이 없으면? 숫자 덧셈\nconsole.log("false + 1   →", false + 1);\nconsole.log("null + 1    →", null + 1);`,
+    explanation: `
+<p>이항 <code>+</code> 연산자는 두 가지 완전히 다른 일을 해요: <strong>숫자 덧셈</strong> 또는 <strong>문자열 연결</strong>. 어느 쪽으로 동작할지는 이 규칙으로 결정돼요:</p>
+<p>1. 양쪽 피연산자에 <code>ToPrimitive()</code> 적용<br>
+2. <strong>둘 중 하나라도 문자열이면</strong> → 나머지도 <code>ToString()</code>으로 변환 → 문자열 연결<br>
+3. <strong>둘 다 문자열이 아니면</strong> → 둘 다 <code>ToNumber()</code> → 숫자 덧셈</p>
+<p><code>false + '1'</code>에서 <code>'1'</code>이 문자열이니까 문자열 모드가 돼요. 그러면 <code>false</code>도 <code>ToString()</code>이 적용돼서 <code>"false"</code>가 되고, 최종적으로 <code>"false" + "1"</code> → <code>"false1"</code>이 되는 거예요.</p>
+<p><code>"01"</code>이 아니냐고요? <code>false</code>가 먼저 <code>0</code>으로 변환된 다음 문자열이 될 거라고 생각하기 쉽지만, 스펙의 순서는 <strong>문자열 여부를 먼저 확인</strong>해요. 문자열이 발견되면 <code>ToString</code>이 적용되기 때문에 <code>false</code> → <code>"false"</code>가 돼요.</p>
+`
+  },
+  {
+    id: 4,
+    code: "1 + 2 + '3'",
+    type: 'choice',
+    options: ['"123"', '"33"', '6', '"6"'],
+    answer: '"33"',
+    editorCode: `// + 는 왼쪽에서 오른쪽으로 결합 (좌결합성)\nconsole.log("1 + 2 + '3'  →", 1 + 2 + '3');\nconsole.log("'1' + 2 + 3  →", '1' + 2 + 3);\nconsole.log("1 + '2' + 3  →", 1 + '2' + 3);\n\n// 단계별 추적\n// 1 + 2 + '3'\n// = (1 + 2) + '3'\n// = 3 + '3'\n// = "33"`,
+    explanation: `
+<p><code>"123"</code>이라고 답하기 쉬운 함정 문제예요. 핵심은 <code>+</code> 연산자가 <strong>왼쪽에서 오른쪽으로</strong> 결합한다는 거예요 (좌결합성).</p>
+<div class="code-example">1 + 2 + '3'
+= (1 + 2) + '3'    ← 왼쪽부터 먼저
+= 3 + '3'          ← 1+2는 둘 다 숫자 → 숫자 덧셈 → 3
+= "33"             ← 3과 '3' → 문자열 모드 → "33"</div>
+<p>문자열의 <strong>위치</strong>가 결과를 완전히 바꿔요:</p>
+<div class="code-example">1 + 2 + '3'    // "33"   — 숫자 덧셈 먼저, 그 다음 문자열 연결
+'1' + 2 + 3    // "123"  — 처음부터 문자열 → 이후 전부 문자열 연결
+1 + '2' + 3    // "123"  — 중간에서 문자열 만남 → 거기서부터 문자열</div>
+<p>문자열을 만나는 <strong>그 순간부터</strong> 이후는 전부 문자열 연결이 돼요. 만나기 전까지는 숫자 덧셈이고요. 그래서 문자열이 어디에 있느냐가 중요해요.</p>
+`
+  },
+  {
+    id: 5,
+    code: 'NaN === NaN',
+    type: 'choice',
+    options: ['true', 'false'],
+    answer: 'false',
+    editorCode: `// NaN은 자기 자신과도 같지 않다\nconsole.log("NaN === NaN →", NaN === NaN);\nconsole.log("NaN == NaN  →", NaN == NaN);\n\n// NaN 판별법\nconsole.log("Number.isNaN(NaN)   →", Number.isNaN(NaN));\nconsole.log("Number.isNaN('abc') →", Number.isNaN('abc'));\nconsole.log("Object.is(NaN, NaN) →", Object.is(NaN, NaN));\n\n// v !== v 트릭\nconst v = NaN;\nconsole.log("v !== v →", v !== v);`,
+    explanation: `
+<p>JavaScript에서 <strong>자기 자신과 같지 않은 유일한 값</strong>이 바로 <code>NaN</code>이에요.</p>
+<p>이건 JavaScript만의 결정이 아니에요. <strong>IEEE 754 부동소수점 표준</strong>에서 그렇게 정한 거예요. 이 표준은 C, Java, Python 등 거의 모든 프로그래밍 언어가 따르고 있어요.</p>
+<p>왜 이렇게 정했을까요? NaN은 "Not a Number" — 계산할 수 없는 결과를 나타내는 값이에요. <code>0/0</code>과 <code>Math.sqrt(-1)</code>은 둘 다 NaN이지만 실패 원인이 달라요. 만약 <code>NaN === NaN</code>이 <code>true</code>라면 이 둘이 같다는 뜻이 되는데, 수학적으로 말이 안 되죠.</p>
+<p>그래서 IEEE 754 위원회는 <strong>NaN은 어떤 값과도 같지 않다</strong>고 정한 거예요. 자기 자신을 포함해서요.</p>
+<p>NaN인지 확인하려면:</p>
+<div class="code-example">Number.isNaN(NaN)     // true ← ES6, 정확한 판별
+Object.is(NaN, NaN)   // true ← 유일하게 같다고 판정
+v !== v                // true ← NaN만 자기 자신과 같지 않은 성질 이용</div>
+`
+  },
+  {
+    id: 6,
+    code: 'typeof null',
+    type: 'choice',
+    options: ['"null"', '"object"', '"undefined"', '"number"'],
+    answer: '"object"',
+    editorCode: `// typeof null — JavaScript의 가장 유명한 버그\nconsole.log("typeof null      →", typeof null);\nconsole.log("typeof undefined →", typeof undefined);\nconsole.log("typeof 42        →", typeof 42);\nconsole.log("typeof 'hello'   →", typeof 'hello');\nconsole.log("typeof true      →", typeof true);\n\n// 정확한 null 체크\nconst value = null;\nconsole.log("value === null   →", value === null);`,
+    explanation: `
+<p>JavaScript에서 가장 유명한 버그예요. <code>null</code>은 명백히 객체가 아닌데 <code>typeof null</code>이 <code>"object"</code>를 반환해요.</p>
+<p>이건 <strong>1995년 초기 JavaScript 엔진의 C 구현에서 생긴 버그</strong>예요.</p>
+<p>당시 모든 값은 32비트로 저장됐어요. 하위 1~3비트를 <strong>타입 태그</strong>로 사용했는데, <code>000</code>이 object였어요. 그리고 <code>null</code>은 C의 <strong>NULL 포인터, 즉 전체 32비트가 0(<code>0x00</code>)</strong>으로 표현했어요. 하위 비트도 당연히 <code>000</code>이죠.</p>
+<p><code>typeof</code> 구현 코드에서 <code>null</code>을 별도로 먼저 체크하지 않았고, 타입 태그 <code>000</code>을 보고 "아, object구나"라고 판단해 버린 거예요.</p>
+<p>ES6(2015년)에서 수정 제안이 있었지만, <strong>이미 수많은 웹사이트가 이 동작에 의존</strong>하고 있어서 기각됐어요. "Don't break the web" 원칙이 20년 된 버그를 영구적으로 고정시킨 셈이에요.</p>
+<div class="code-example">// null 체크에 typeof를 쓰면 안 된다
+typeof null === 'object'  // true — 쓸모없음
+
+// 정확한 null 체크
+value === null             // 이게 맞음</div>
+`
+  },
+  {
+    id: 7,
+    code: "'cat' && 'dog'",
+    type: 'choice',
+    options: ['true', 'false', '"cat"', '"dog"'],
+    answer: '"dog"',
+    editorCode: `// 논리 연산자는 불리언이 아닌 원래 값을 반환\nconsole.log("'cat' && 'dog' →", 'cat' && 'dog');\nconsole.log("0 && 'dog'     →", 0 && 'dog');\nconsole.log("'' && 'dog'    →", '' && 'dog');\nconsole.log("'cat' && 0     →", 'cat' && 0);\n\nconsole.log("\\n--- || 도 마찬가지 ---");\nconsole.log("0 || 'hello'   →", 0 || 'hello');\nconsole.log("'cat' || 'dog' →", 'cat' || 'dog');`,
+    explanation: `
+<p><code>&&</code>은 불리언 연산자니까 <code>true</code>나 <code>false</code>를 반환할 거라고 생각하기 쉬워요. 하지만 JavaScript의 논리 연산자는 <strong>불리언이 아닌 피연산자의 원래 값</strong>을 반환해요.</p>
+<p><code>&&</code>의 규칙: 왼쪽이 <strong>falsy</strong>면 왼쪽 반환, <strong>truthy</strong>면 오른쪽 반환.</p>
+<p><code>'cat'</code>은 비어있지 않은 문자열이라 truthy예요. 그러면 오른쪽까지 평가해야 하니까 <code>'dog'</code>이 반환되는 거예요.</p>
+<p>왜 이렇게 설계했을까요? 불리언으로 변환하면 <strong>정보 손실</strong>이에요. 원래 값을 반환하면 조건 판단도 되면서 <strong>값으로도 활용</strong>할 수 있거든요:</p>
+<div class="code-example">isLoggedIn && showDashboard();          // 조건부 실행
+const name = userInput || '익명';       // 기본값 패턴
+const city = user && user.address;     // 옵셔널 접근</div>
+<p>불리언으로 변환하는 건 <code>if</code>문 같은 <strong>호출한 쪽의 책임</strong>이지, 연산자의 책임이 아닌 거예요.</p>
+`
+  },
+  {
+    id: 8,
+    code: "0 ?? 'default'",
+    type: 'choice',
+    options: ['0', '"default"', 'false', 'NaN'],
+    answer: '0',
+    editorCode: `// ?? (null 병합) vs || (논리 OR)\nconsole.log("0 ?? 'default'  →", 0 ?? 'default');\nconsole.log("0 || 'default'  →", 0 || 'default');\nconsole.log("'' ?? 'default' →", '' ?? 'default');\nconsole.log("'' || 'default' →", '' || 'default');\n\nconsole.log("\\n--- null/undefined만 걸러냄 ---");\nconsole.log("null ?? 'default'      →", null ?? 'default');\nconsole.log("undefined ?? 'default' →", undefined ?? 'default');`,
+    explanation: `
+<p>이 문제는 <code>??</code>(null 병합 연산자)와 <code>||</code>(논리 OR)의 차이를 아는지 묻는 문제예요.</p>
+<div class="code-example">0 ?? 'default'   // 0         — ?? 사용
+0 || 'default'   // "default" — || 사용</div>
+<p><code>||</code>는 왼쪽이 <strong>falsy</strong>이면 오른쪽을 반환해요. <code>0</code>은 falsy니까 <code>'default'</code>가 반환돼요.<br>
+<code>??</code>는 왼쪽이 <strong>null 또는 undefined</strong>일 때만 오른쪽을 반환해요. <code>0</code>은 null도 undefined도 아니니까 그대로예요.</p>
+<p><code>??</code>가 ES2020에서 추가된 이유가 바로 이거예요. <code>||</code>로 기본값을 설정하면 <code>0</code>, <code>''</code>, <code>false</code> 같은 <strong>유효하지만 falsy인 값</strong>도 걸러버리는 문제가 있었거든요:</p>
+<div class="code-example">// 사용자가 볼륨을 0으로 설정했는데...
+const volume = userVolume || 50;  // 0이 falsy라서 50으로 덮어씀!
+const volume = userVolume ?? 50;  // 0은 그대로 유지, null일 때만 50</div>
+`
+  },
+  {
+    id: 9,
+    code: 'const x = (1, 2, 3);\nx',
+    type: 'input',
+    answer: '3',
+    editorCode: `// 쉼표 연산자: 마지막 값을 반환\nconst x = (1, 2, 3);\nconsole.log("x →", x);\n\n// for문에서 실제로 쓰이는 곳\nfor (let i = 0, j = 10; i < j; i++, j--) {\n  console.log(\`i=\${i}, j=\${j}\`);\n}\n\n// 같은 , 여도 역할이 다르다\n// let a = 1, b = 2;  ← 선언 구분 (연산자 아님)\n// foo(1, 2);         ← 인자 구분 (연산자 아님)\n// [1, 2, 3];         ← 요소 구분 (연산자 아님)`,
+    explanation: `
+<p>괄호 안의 <code>,</code>는 <strong>쉼표 연산자</strong>예요. 배열의 쉼표나 함수 인자 구분 쉼표와는 다른, 진짜 연산자예요.</p>
+<p>이 연산자는 JavaScript가 만든 게 아니에요. <strong>C언어(1972년)에서 그대로 물려받은 것</strong>이에요. Brendan Eich가 1995년에 JavaScript를 설계할 때 C/Java 문법을 의도적으로 차용했거든요.</p>
+<div class="code-example">// C언어 — 쉼표 연산자 (1972년부터 존재)
+int x = (1, 2, 3);  // x == 3</div>
+<p>동작은 단순해요: <strong>왼쪽부터 순서대로 평가하고, 마지막 값을 반환</strong>해요.</p>
+<p>왜 마지막 값일까요? 순차 실행에서 앞의 것들은 <strong>부수 효과(side effect)</strong>를 위한 것이고, "결과"는 마지막이 자연스러워요. <code>eval('1; 2; 3')</code>이 <code>3</code>을 반환하는 것과 같은 원리예요.</p>
+<p>C에서 이걸 만든 이유는 <strong>for문</strong> 때문이에요. for문의 각 슬롯은 표현식 하나만 받는데, 문(statement)을 허용하면 세미콜론이 슬롯 구분인지 문의 끝인지 모호해지거든요:</p>
+<div class="code-example">// ❌ 이렇게 못 함 — 세미콜론 모호
+for (let i = 0; i < 5; i++; j--)
+
+// ✅ 쉼표 연산자로 합침
+for (let i = 0, j = 10; i < j; i++, j--) {
+  console.log(i, j);  // 0 10, 1 9, 2 8, ...
+}</div>
+<p>정리하면: <strong>C에서 for문의 파서 모호성을 해결하기 위해 만들어진 연산자 → JavaScript가 C 문법을 차용하면서 가져온 것</strong>이에요.</p>
+`
+  },
+  {
+    id: 10,
+    code: '~~3.7',
+    type: 'choice',
+    options: ['3', '4', '3.7', 'NaN'],
+    answer: '3',
+    editorCode: `// 비트 연산 시 64비트 float → 32비트 Int32 변환\nconsole.log("~~3.7      →", ~~3.7);\nconsole.log("~~(-3.7)   →", ~~(-3.7));\nconsole.log("3.7 | 0    →", 3.7 | 0);\nconsole.log("Math.trunc →", Math.trunc(3.7));\n\nconsole.log("\\n--- 32비트 범위를 넘으면? ---");\nconsole.log("~~(2**31 - 1) →", ~~(2**31 - 1));\nconsole.log("~~(2**31)     →", ~~(2**31));\nconsole.log("~~(2**53)     →", ~~(2**53));`,
+    explanation: `
+<p>JavaScript의 모든 숫자는 <strong>64비트 부동소수점(double)</strong>인데, 비트 연산을 할 때만 <strong>일시적으로 32비트 정수(Int32)로 변환</strong>해요.</p>
+<p><code>~</code>는 비트 NOT 연산자예요. 한 번 뒤집고(<code>~</code>) 다시 뒤집으면(<code>~~</code>) 원래 비트로 돌아오지만, <strong>그 과정에서 32비트 정수로 변환될 때 소수점이 잘려나가요</strong>.</p>
+<div class="code-example">3.7
+→ 32비트 정수 변환: 3 (소수점 버림)
+→ ~3 = -4 (비트 NOT)
+→ ~(-4) = 3 (비트 NOT 한 번 더)
+→ 결과: 3</div>
+<p>이게 실무에서 <code>Math.trunc()</code> 대신 쓰이는 트릭이에요:</p>
+<div class="code-example">~~3.7          // 3
+3.7 | 0        // 3   — 같은 원리
+Math.trunc(3.7) // 3  — 정석적인 방법</div>
+<p>하지만 <strong>32비트 정수 범위(약 ±21억)를 넘으면 깨져요</strong>. <code>~~(2**53)</code>은 <code>0</code>이 돼요. 그래서 일반적으로는 <code>Math.trunc()</code>가 안전해요.</p>
+`
+  }
+];
+
+// --- State ---
+const state = {
+  phase: 'start',   // 'start' | 'quiz' | 'answer' | 'result' | 'review'
+  current: 0,
+  selected: null,
+  answers: Array(quizData.length).fill(null),
+  correct: Array(quizData.length).fill(false),
+  score: 0,
+  editors: {}
+};
+
+const app = document.getElementById('app');
+let cmEditorView = null;
+
+// --- Render ---
+function render() {
+  if (cmEditorView) { cmEditorView.destroy(); cmEditorView = null; }
+
+  switch (state.phase) {
+    case 'start': renderStart(); break;
+    case 'quiz': renderQuiz(); break;
+    case 'answer': renderAnswer(); break;
+    case 'result': renderResult(); break;
+    case 'review': renderReview(); break;
+  }
+}
+
+function renderStart() {
+  app.innerHTML = `
+    <div class="card slide-in start-page">
+      <h2>JS 연산자, 얼마나 알고 있나요?</h2>
+      <p>코드를 보고 실행 결과를 맞춰보세요.<br>총 10문제, 해설과 실행 가능한 에디터가 함께 제공돼요.</p>
+      <div class="start-tags">
+        <span class="tag">단항 연산자</span>
+        <span class="tag">타입 변환</span>
+        <span class="tag">논리 연산자</span>
+        <span class="tag">비트 연산자</span>
+        <span class="tag">typeof</span>
+        <span class="tag">NaN</span>
+      </div>
+      <button class="btn btn-primary" onclick="startQuiz()">퀴즈 시작</button>
+    </div>
+  `;
+}
+
+function renderQuiz() {
+  const q = quizData[state.current];
+  const progress = ((state.current) / quizData.length) * 100;
+
+  let optionsHTML = '';
+  if (q.type === 'choice') {
+    const markers = ['A', 'B', 'C', 'D'];
+    optionsHTML = `<div class="options">
+      ${q.options.map((opt, i) => `
+        <button class="option-btn${state.selected === opt ? ' selected' : ''}"
+                onclick="selectOption('${opt.replace(/'/g, "\\'")}')">
+          <span class="option-marker">${markers[i]}</span>
+          <span>${escapeHTML(opt)}</span>
+        </button>
+      `).join('')}
+    </div>`;
+  } else {
+    optionsHTML = `
+      <div class="input-wrap">
+        <input type="text" class="input-answer" placeholder="결과를 입력하세요"
+               value="${state.selected || ''}"
+               oninput="selectOption(this.value)"
+               onkeydown="if(event.key==='Enter')submitAnswer()">
+      </div>
+    `;
+  }
+
+  app.innerHTML = `
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Q${state.current + 1}/${quizData.length}</span>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${progress}%"></div>
+      </div>
+    </div>
+    <div class="card slide-in">
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:4px">다음 코드의 결과는?</p>
+      <div class="code-block">${escapeHTML(q.code)}</div>
+      ${optionsHTML}
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitAnswer()" ${state.selected == null ? 'disabled' : ''}>
+          정답 확인
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAnswer() {
+  const q = quizData[state.current];
+  const isCorrect = state.correct[state.current];
+  const progress = ((state.current + 1) / quizData.length) * 100;
+  const isLast = state.current === quizData.length - 1;
+
+  app.innerHTML = `
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Q${state.current + 1}/${quizData.length}</span>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${progress}%"></div>
+      </div>
+    </div>
+    <div class="card slide-in">
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:4px">다음 코드의 결과는?</p>
+      <div class="code-block">${escapeHTML(q.code)}</div>
+      <div style="font-family:'SF Mono','Fira Code',monospace;font-size:1rem;padding:10px 0;color:var(--text-secondary)">
+        내 답: <strong style="color:var(--text)">${escapeHTML(String(state.answers[state.current]))}</strong>
+        → 정답: <strong style="color:var(--accent)">${escapeHTML(q.answer)}</strong>
+      </div>
+      <div class="explanation">
+        <div class="result-badge ${isCorrect ? 'correct' : 'wrong'}">
+          ${isCorrect ? '&#10004; 정답!' : '&#10008; 오답'}
+        </div>
+        <div class="explanation-text">${q.explanation}</div>
+        <div class="editor-section">
+          <div class="editor-header">
+            <span>직접 실행해보기</span>
+            <button class="btn-run" onclick="runEditor()">&#9654; 실행</button>
+          </div>
+          <div class="editor-container" id="cm-editor"></div>
+          <div class="editor-output" id="editor-output"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="${isLast ? 'showResult()' : 'nextQuestion()'}">
+          ${isLast ? '결과 보기' : '다음 문제 →'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Mount CodeMirror
+  mountEditor(q.editorCode);
+}
+
+function renderResult() {
+  const pct = Math.round((state.score / quizData.length) * 100);
+  const wrongItems = quizData
+    .map((q, i) => ({ ...q, index: i }))
+    .filter((_, i) => !state.correct[i]);
+
+  let wrongHTML = '';
+  if (wrongItems.length > 0) {
+    wrongHTML = `
+      <div class="wrong-list">
+        <h3>틀린 문제 (${wrongItems.length}개)</h3>
+        ${wrongItems.map(q => `
+          <div class="wrong-item">
+            <code>Q${q.index + 1}. ${escapeHTML(q.code)}</code>
+            <button class="btn-review" onclick="reviewQuestion(${q.index})">복습</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  app.innerHTML = `
+    <div class="card slide-in result-page">
+      <h2>${pct >= 80 ? '&#127881;' : pct >= 50 ? '&#128170;' : '&#128218;'} 퀴즈 완료!</h2>
+      <div class="score-display">${state.score} / ${quizData.length}</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-fill" style="width:0%"></div>
+      </div>
+      <p style="color:var(--text-secondary);margin-bottom:24px">
+        ${pct >= 80 ? '대단해요! JS 연산자를 잘 이해하고 있어요.' :
+          pct >= 50 ? '꽤 잘했어요! 틀린 문제를 복습해보세요.' :
+          '연산자의 함정이 많죠? 해설을 읽고 다시 도전해보세요!'}
+      </p>
+      ${wrongHTML}
+      <div class="result-actions">
+        <button class="btn btn-secondary" onclick="resetQuiz()">처음부터 다시</button>
+      </div>
+    </div>
+  `;
+
+  // Animate score bar
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const fill = document.querySelector('.score-bar-fill');
+      if (fill) fill.style.width = pct + '%';
+    });
+  });
+}
+
+function renderReview() {
+  // Reuse answer view for review mode
+  const q = quizData[state.current];
+  const isCorrect = state.correct[state.current];
+
+  app.innerHTML = `
+    <div class="card slide-in">
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:4px">
+        <a href="#" onclick="showResult();return false" style="color:var(--accent);text-decoration:none">← 결과로 돌아가기</a>
+      </p>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:12px;margin-bottom:4px">Q${state.current + 1}. 다음 코드의 결과는?</p>
+      <div class="code-block">${escapeHTML(q.code)}</div>
+      <div style="font-family:'SF Mono','Fira Code',monospace;font-size:1rem;padding:10px 0;color:var(--text-secondary)">
+        내 답: <strong style="color:var(--wrong)">${escapeHTML(String(state.answers[state.current]))}</strong>
+        → 정답: <strong style="color:var(--accent)">${escapeHTML(q.answer)}</strong>
+      </div>
+      <div class="explanation">
+        <div class="result-badge wrong">&#10008; 오답</div>
+        <div class="explanation-text">${q.explanation}</div>
+        <div class="editor-section">
+          <div class="editor-header">
+            <span>직접 실행해보기</span>
+            <button class="btn-run" onclick="runEditor()">&#9654; 실행</button>
+          </div>
+          <div class="editor-container" id="cm-editor"></div>
+          <div class="editor-output" id="editor-output"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  mountEditor(q.editorCode);
+}
+
+// --- CodeMirror ---
+function mountEditor(code) {
+  const el = document.getElementById('cm-editor');
+  if (!el) return;
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const extensions = [
+    basicSetup,
+    javascript(),
+    EditorView.lineWrapping,
+  ];
+  if (isDark) extensions.push(oneDark);
+
+  cmEditorView = new EditorView({
+    doc: code,
+    extensions,
+    parent: el,
+  });
+}
+
+function runEditor() {
+  if (!cmEditorView) return;
+  const code = cmEditorView.state.doc.toString();
+  const output = document.getElementById('editor-output');
+  const logs = [];
+  const origLog = console.log;
+  console.log = (...args) => logs.push(args.map(a => {
+    if (a === undefined) return 'undefined';
+    if (a === null) return 'null';
+    if (typeof a === 'string') return a;
+    try { return JSON.stringify(a); } catch { return String(a); }
+  }).join(' '));
+  try {
+    new Function(code)();
+  } catch (e) {
+    logs.push(`Error: ${e.message}`);
+  }
+  console.log = origLog;
+  output.textContent = logs.join('\n') || '(출력 없음)';
+}
+
+// --- Actions ---
+window.startQuiz = function() {
+  state.phase = 'quiz';
+  state.current = 0;
+  state.selected = null;
+  render();
+};
+
+window.selectOption = function(val) {
+  state.selected = val;
+  render();
+};
+
+window.submitAnswer = function() {
+  if (state.selected == null) return;
+  const q = quizData[state.current];
+  const userAnswer = String(state.selected).trim();
+  state.answers[state.current] = userAnswer;
+  state.correct[state.current] = userAnswer === q.answer;
+  if (state.correct[state.current]) state.score++;
+  state.phase = 'answer';
+  render();
+};
+
+window.nextQuestion = function() {
+  state.current++;
+  state.selected = null;
+  state.phase = 'quiz';
+  render();
+};
+
+window.showResult = function() {
+  state.phase = 'result';
+  render();
+};
+
+window.reviewQuestion = function(index) {
+  state.current = index;
+  state.phase = 'review';
+  render();
+};
+
+window.resetQuiz = function() {
+  state.phase = 'start';
+  state.current = 0;
+  state.selected = null;
+  state.answers = Array(quizData.length).fill(null);
+  state.correct = Array(quizData.length).fill(false);
+  state.score = 0;
+  render();
+};
+
+window.runEditor = runEditor;
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// --- Init ---
+render();
+</script>
+</body>
+</html>
