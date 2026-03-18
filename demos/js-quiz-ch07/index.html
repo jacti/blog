@@ -416,11 +416,16 @@ body {
   <div id="app"></div>
 </div>
 
-<script type="module">
-// --- CodeMirror ---
-import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6.0.1';
-import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6.2.2';
-import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6.1.2';
+<script>
+// --- CodeMirror (prefetch in background) ---
+let cmModules = null;
+const cmReady = Promise.all([
+  import('https://esm.sh/codemirror@6.0.1'),
+  import('https://esm.sh/@codemirror/lang-javascript@6.2.2'),
+  import('https://esm.sh/@codemirror/theme-one-dark@6.1.2'),
+]).then(([cm, langJs, theme]) => {
+  cmModules = { EditorView: cm.EditorView, basicSetup: cm.basicSetup, javascript: langJs.javascript, oneDark: theme.oneDark };
+}).catch(() => { /* CDN 로드 실패 시 에디터 없이 동작 */ });
 
 // --- Quiz Data ---
 const quizData = [
@@ -674,10 +679,9 @@ function renderQuiz() {
   let optionsHTML = '';
   if (q.type === 'choice') {
     const markers = ['A', 'B', 'C', 'D'];
-    optionsHTML = `<div class="options">
+    optionsHTML = `<div class="options" id="quiz-options">
       ${q.options.map((opt, i) => `
-        <button class="option-btn${state.selected === opt ? ' selected' : ''}"
-                onclick="selectOption('${opt.replace(/'/g, "\\'")}')">
+        <button class="option-btn${state.selected === opt ? ' selected' : ''}" data-index="${i}">
           <span class="option-marker">${markers[i]}</span>
           <span>${escapeHTML(opt)}</span>
         </button>
@@ -712,6 +716,18 @@ function renderQuiz() {
       </div>
     </div>
   `;
+
+  // 이벤트 위임: 옵션 클릭 처리
+  const optionsEl = document.getElementById('quiz-options');
+  if (optionsEl) {
+    optionsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.option-btn');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.index);
+      const q = quizData[state.current];
+      selectOption(q.options[idx]);
+    });
+  }
 }
 
 function renderAnswer() {
@@ -844,10 +860,18 @@ function renderReview() {
 }
 
 // --- CodeMirror ---
-function mountEditor(code) {
+async function mountEditor(code) {
   const el = document.getElementById('cm-editor');
   if (!el) return;
 
+  await cmReady;
+  if (!cmModules) {
+    // CDN 로드 실패 시 textarea fallback
+    el.innerHTML = `<textarea style="width:100%;min-height:120px;padding:12px;background:var(--code-bg);color:var(--code-text);border:none;font-family:'SF Mono','Fira Code',monospace;font-size:0.88rem;resize:vertical" id="cm-fallback">${escapeHTML(code)}</textarea>`;
+    return;
+  }
+
+  const { EditorView, basicSetup, javascript, oneDark } = cmModules;
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   const extensions = [
@@ -865,8 +889,9 @@ function mountEditor(code) {
 }
 
 function runEditor() {
-  if (!cmEditorView) return;
-  const code = cmEditorView.state.doc.toString();
+  const fallback = document.getElementById('cm-fallback');
+  const code = cmEditorView ? cmEditorView.state.doc.toString() : fallback ? fallback.value : null;
+  if (!code) return;
   const output = document.getElementById('editor-output');
   const logs = [];
   const origLog = console.log;
@@ -895,6 +920,21 @@ window.startQuiz = function() {
 
 window.selectOption = function(val) {
   state.selected = val;
+  // 전체 리렌더 대신 선택 상태만 업데이트
+  if (state.phase === 'quiz') {
+    const q = quizData[state.current];
+    if (q.type === 'choice') {
+      const btns = document.querySelectorAll('.option-btn');
+      btns.forEach((btn, i) => {
+        const isSelected = q.options[i] === val;
+        btn.classList.toggle('selected', isSelected);
+        btn.querySelector('.option-marker').classList.toggle('selected', isSelected);
+      });
+    }
+    const submitBtn = document.querySelector('.btn-primary');
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
   render();
 };
 
