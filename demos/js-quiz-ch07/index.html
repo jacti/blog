@@ -397,6 +397,18 @@ body {
   color: var(--accent);
 }
 
+/* --- Nav home link --- */
+.nav-home {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 12px;
+  transition: color 0.15s;
+}
+.nav-home:hover { color: var(--text); }
+
 /* Responsive */
 @media (max-width: 600px) {
   body { padding: 12px; }
@@ -409,6 +421,7 @@ body {
 <body>
 
 <div class="container">
+  <a class="nav-home" href="/">jacti-log</a>
   <div class="header">
     <h1>JS 연산자 퀴즈</h1>
     <p>ch07. 연산자 — 코드의 결과를 맞춰보세요</p>
