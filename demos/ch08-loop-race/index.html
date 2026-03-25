@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>while vs do...while 명령어 경주</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --code-comment: #64748b;
+    --code-keyword: #c084fc;
+    --code-number: #fbbf24;
+    --code-operator: #94a3b8;
+    --line-highlight: rgba(59, 130, 246, 0.15);
+    --line-highlight-fail: rgba(239, 68, 68, 0.15);
+    --line-highlight-done: rgba(16, 185, 129, 0.15);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --code-bg: #0f172a;
+      --line-highlight: rgba(59, 130, 246, 0.2);
+      --line-highlight-fail: rgba(239, 68, 68, 0.2);
+      --line-highlight-done: rgba(16, 185, 129, 0.2);
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .demo-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+
+  .demo-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .demo-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  .demo-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .btn-run {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--teal);
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-run:hover { opacity: 0.85; }
+  .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .speed-select {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  /* Race area */
+  .race-area {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 540px) {
+    .race-area { grid-template-columns: 1fr; }
+  }
+
+  .lane {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .lane-header {
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lane-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+
+  .lane-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--teal);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .lane-count.visible { opacity: 1; }
+
+  /* Code block */
+  .code-block {
+    background: var(--code-bg);
+    padding: 12px 0;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+
+  .code-line {
+    display: flex;
+    align-items: center;
+    padding: 1px 14px 1px 0;
+    transition: background 0.2s;
+    position: relative;
+    min-height: 22px;
+  }
+
+  .code-line.active {
+    background: var(--line-highlight);
+  }
+
+  .code-line.active-fail {
+    background: var(--line-highlight-fail);
+  }
+
+  .code-line.active-done {
+    background: var(--line-highlight-done);
+  }
+
+  /* Execution pointer arrow */
+  .code-line .exec-pointer {
+    position: absolute;
+    left: 2px;
+    color: #3b82f6;
+    font-size: 0.65rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .code-line.active .exec-pointer,
+  .code-line.active-fail .exec-pointer,
+  .code-line.active-done .exec-pointer {
+    opacity: 1;
+  }
+
+  .code-line.active-fail .exec-pointer { color: #ef4444; }
+  .code-line.active-done .exec-pointer { color: #10b981; }
+
+  .line-num {
+    width: 28px;
+    text-align: right;
+    color: #475569;
+    user-select: none;
+    flex-shrink: 0;
+    padding-left: 14px;
+    font-size: 0.65rem;
+  }
+
+  .line-code {
+    padding-left: 12px;
+    color: var(--code-text);
+    white-space: pre;
+  }
+
+  .line-code .kw { color: #c084fc; }
+  .line-code .num { color: #fbbf24; }
+  .line-code .op { color: #94a3b8; }
+  .line-code .cm { color: #64748b; font-style: italic; }
+  .line-code .fn { color: #67e8f9; }
+  .line-code .str { color: #86efac; }
+
+  /* Variable panel */
+  .var-panel {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid var(--border);
+    min-height: 44px;
+  }
+
+  .var-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  .var-name {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .var-value {
+    display: inline-block;
+    min-width: 28px;
+    text-align: center;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+  }
+
+  .var-value.var-n {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+  }
+
+  .var-value.var-count {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+  }
+
+  .var-value.flash {
+    transform: scale(1.2);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .var-value.var-n {
+      background: rgba(59, 130, 246, 0.18);
+      color: #60a5fa;
+    }
+    .var-value.var-count {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+    }
+  }
+
+  .step-badge {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: system-ui, sans-serif;
+  }
+
+  /* Result bar */
+  .result-bar {
+    margin-top: 0;
+    padding: 0 20px 20px;
+    display: none;
+    gap: 12px;
+    flex-direction: column;
+  }
+
+  .result-bar.visible { display: flex; }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+  }
+
+  .bar-label {
+    width: 90px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 24px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  .bar-fill.while-bar { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+  .bar-fill.dowhile-bar { background: linear-gradient(90deg, #10b981, #14b8a6); }
+
+  .demo-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <div>
+      <div class="demo-title">같은 일, 다른 명령어 수 — while vs do...while 비교</div>
+      <div class="demo-subtitle">숫자 52의 자릿수(= 2)를 세는 코드를 한 줄씩 실행하면서 비교해요.</div>
+    </div>
+    <div class="controls">
+      <select class="speed-select" id="speed-select">
+        <option value="600">보통</option>
+        <option value="350">빠르게</option>
+        <option value="1000">느리게</option>
+      </select>
+      <button class="btn-run" id="btn-run">&#9654; 실행</button>
+    </div>
+  </div>
+
+  <div class="race-area">
+    <!-- while lane -->
+    <div class="lane">
+      <div class="lane-header">
+        <span class="lane-title">while</span>
+        <span class="lane-count" id="while-count"></span>
+      </div>
+      <div class="code-block" id="while-code"></div>
+      <div class="var-panel">
+        <div class="var-item">
+          <span class="var-name">n</span>
+          <span class="var-value var-n" id="while-n">—</span>
+        </div>
+        <div class="var-item">
+          <span class="var-name">count</span>
+          <span class="var-value var-count" id="while-c">—</span>
+        </div>
+        <span class="step-badge" id="while-step"></span>
+      </div>
+    </div>
+    <!-- do...while lane -->
+    <div class="lane">
+      <div class="lane-header">
+        <span class="lane-title">do...while</span>
+        <span class="lane-count" id="dowhile-count"></span>
+      </div>
+      <div class="code-block" id="dowhile-code"></div>
+      <div class="var-panel">
+        <div class="var-item">
+          <span class="var-name">n</span>
+          <span class="var-value var-n" id="dowhile-n">—</span>
+        </div>
+        <div class="var-item">
+          <span class="var-name">count</span>
+          <span class="var-value var-count" id="dowhile-c">—</span>
+        </div>
+        <span class="step-badge" id="dowhile-step"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-bar" id="result-bar">
+    <div class="bar-row">
+      <span class="bar-label">while</span>
+      <div class="bar-track">
+        <div class="bar-fill while-bar" id="while-bar"></div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">do...while</span>
+      <div class="bar-track">
+        <div class="bar-fill dowhile-bar" id="dowhile-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-footer" id="demo-footer">
+    위의 &#9654; 실행 버튼을 눌러보세요! 두 반복문이 같은 결과를 내는 과정을 한 줄씩 보여드려요.
+  </div>
+</div>
+
+<script>
+(function() {
+  // ── Code lines (HTML with syntax highlighting) ──
+
+  var whileCode = [
+    '<span class="kw">let</span> n <span class="op">=</span> <span class="num">52</span>, count <span class="op">=</span> <span class="num">0</span>;',
+    '<span class="kw">while</span> (n <span class="op">&gt;</span> <span class="num">0</span>) {',
+    '  count<span class="op">++</span>;',
+    '  n <span class="op">=</span> <span class="fn">Math.floor</span>(n <span class="op">/</span> <span class="num">10</span>);',
+    '}',
+    '<span class="cm">// count = 2</span>'
+  ];
+
+  var dowhileCode = [
+    '<span class="kw">let</span> n <span class="op">=</span> <span class="num">52</span>, count <span class="op">=</span> <span class="num">0</span>;',
+    '<span class="kw">do</span> {',
+    '  count<span class="op">++</span>;',
+    '  n <span class="op">=</span> <span class="fn">Math.floor</span>(n <span class="op">/</span> <span class="num">10</span>);',
+    '} <span class="kw">while</span> (n <span class="op">&gt;</span> <span class="num">0</span>);',
+    '<span class="cm">// count = 2</span>'
+  ];
+
+  // ── Execution traces ──
+  // Each step: { line, n, count, type: 'normal'|'fail'|'done' }
+
+  var whileTrace = [
+    { line: 0, n: 52, count: 0, type: 'normal' },   // let 초기화
+    { line: 1, n: 52, count: 0, type: 'normal' },   // while 조건 → 참
+    { line: 2, n: 52, count: 1, type: 'normal' },   // count++
+    { line: 3, n: 5,  count: 1, type: 'normal' },   // n = floor(52/10)
+    { line: 4, n: 5,  count: 1, type: 'normal' },   // } → 돌아감
+    { line: 1, n: 5,  count: 1, type: 'normal' },   // while 조건 → 참
+    { line: 2, n: 5,  count: 2, type: 'normal' },   // count++
+    { line: 3, n: 0,  count: 2, type: 'normal' },   // n = floor(5/10)
+    { line: 4, n: 0,  count: 2, type: 'normal' },   // } → 돌아감
+    { line: 1, n: 0,  count: 2, type: 'fail' },     // while 조건 → 거짓!
+    { line: 5, n: 0,  count: 2, type: 'done' }      // 종료
+  ];
+
+  var dowhileTrace = [
+    { line: 0, n: 52, count: 0, type: 'normal' },   // let 초기화
+    { line: 1, n: 52, count: 0, type: 'normal' },   // do {
+    { line: 2, n: 52, count: 1, type: 'normal' },   // count++
+    { line: 3, n: 5,  count: 1, type: 'normal' },   // n = floor(52/10)
+    { line: 4, n: 5,  count: 1, type: 'normal' },   // while 조건 → 참
+    { line: 2, n: 5,  count: 2, type: 'normal' },   // count++
+    { line: 3, n: 0,  count: 2, type: 'normal' },   // n = floor(5/10)
+    { line: 4, n: 0,  count: 2, type: 'fail' },     // while 조건 → 거짓!
+    { line: 5, n: 0,  count: 2, type: 'done' }      // 종료
+  ];
+
+  // ── Render code blocks ──
+
+  function renderCodeBlock(containerId, codeLines) {
+    var container = document.getElementById(containerId);
+    container.innerHTML = '';
+    var els = [];
+    for (var i = 0; i < codeLines.length; i++) {
+      var div = document.createElement('div');
+      div.className = 'code-line';
+      div.innerHTML =
+        '<span class="exec-pointer">&#9654;</span>' +
+        '<span class="line-num">' + (i + 1) + '</span>' +
+        '<span class="line-code">' + codeLines[i] + '</span>';
+      container.appendChild(div);
+      els.push(div);
+    }
+    return els;
+  }
+
+  // ── Helpers ──
+
+  function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+  function flashVar(el) {
+    el.classList.add('flash');
+    setTimeout(function() { el.classList.remove('flash'); }, 200);
+  }
+
+  var running = false;
+
+  // ── Main run logic ──
+
+  document.getElementById('btn-run').addEventListener('click', async function() {
+    if (running) return;
+    running = true;
+
+    var btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    btn.textContent = '실행 중...';
+
+    var speed = parseInt(document.getElementById('speed-select').value, 10);
+
+    // Get DOM refs
+    var whileNEl = document.getElementById('while-n');
+    var whileCEl = document.getElementById('while-c');
+    var dowhileNEl = document.getElementById('dowhile-n');
+    var dowhileCEl = document.getElementById('dowhile-c');
+    var whileStepEl = document.getElementById('while-step');
+    var dowhileStepEl = document.getElementById('dowhile-step');
+    var whileCountEl = document.getElementById('while-count');
+    var dowhileCountEl = document.getElementById('dowhile-count');
+    var resultBar = document.getElementById('result-bar');
+    var footer = document.getElementById('demo-footer');
+
+    // Reset
+    whileNEl.textContent = '—';
+    whileCEl.textContent = '—';
+    dowhileNEl.textContent = '—';
+    dowhileCEl.textContent = '—';
+    whileStepEl.textContent = '';
+    dowhileStepEl.textContent = '';
+    whileCountEl.className = 'lane-count';
+    dowhileCountEl.className = 'lane-count';
+    resultBar.className = 'result-bar';
+
+    // Render code
+    var wLines = renderCodeBlock('while-code', whileCode);
+    var dLines = renderCodeBlock('dowhile-code', dowhileCode);
+
+    await sleep(300);
+
+    // Run both traces in parallel, tick by tick
+    var wi = 0, di = 0;
+    var wLen = whileTrace.length, dLen = dowhileTrace.length;
+    var maxLen = Math.max(wLen, dLen);
+
+    for (var tick = 0; tick < maxLen; tick++) {
+      // while side
+      if (wi < wLen) {
+        var ws = whileTrace[wi];
+        // Clear previous highlights
+        for (var j = 0; j < wLines.length; j++) {
+          wLines[j].classList.remove('active', 'active-fail', 'active-done');
+        }
+        // Highlight current line
+        var wClass = ws.type === 'fail' ? 'active-fail' : ws.type === 'done' ? 'active-done' : 'active';
+        wLines[ws.line].classList.add(wClass);
+        // Update vars
+        whileNEl.textContent = ws.n;
+        whileCEl.textContent = ws.count;
+        flashVar(whileNEl);
+        flashVar(whileCEl);
+        whileStepEl.textContent = (wi + 1) + '/' + wLen;
+        wi++;
+      }
+      // do...while side
+      if (di < dLen) {
+        var ds = dowhileTrace[di];
+        for (var k = 0; k < dLines.length; k++) {
+          dLines[k].classList.remove('active', 'active-fail', 'active-done');
+        }
+        var dClass = ds.type === 'fail' ? 'active-fail' : ds.type === 'done' ? 'active-done' : 'active';
+        dLines[ds.line].classList.add(dClass);
+        dowhileNEl.textContent = ds.n;
+        dowhileCEl.textContent = ds.count;
+        flashVar(dowhileNEl);
+        flashVar(dowhileCEl);
+        dowhileStepEl.textContent = (di + 1) + '/' + dLen;
+        di++;
+      }
+      await sleep(speed);
+    }
+
+    // Finish remaining while steps
+    while (wi < wLen) {
+      var ws2 = whileTrace[wi];
+      for (var j2 = 0; j2 < wLines.length; j2++) {
+        wLines[j2].classList.remove('active', 'active-fail', 'active-done');
+      }
+      var wClass2 = ws2.type === 'fail' ? 'active-fail' : ws2.type === 'done' ? 'active-done' : 'active';
+      wLines[ws2.line].classList.add(wClass2);
+      whileNEl.textContent = ws2.n;
+      whileCEl.textContent = ws2.count;
+      flashVar(whileNEl);
+      flashVar(whileCEl);
+      whileStepEl.textContent = (wi + 1) + '/' + wLen;
+      wi++;
+      await sleep(speed);
+    }
+
+    await sleep(300);
+
+    // Show counts
+    whileCountEl.textContent = wLen + '단계';
+    whileCountEl.className = 'lane-count visible';
+    dowhileCountEl.textContent = dLen + '단계';
+    dowhileCountEl.className = 'lane-count visible';
+
+    // Show result bar
+    resultBar.className = 'result-bar visible';
+    await sleep(100);
+    document.getElementById('while-bar').style.width = '100%';
+    document.getElementById('while-bar').textContent = wLen + '단계';
+    document.getElementById('dowhile-bar').style.width = Math.round(dLen / wLen * 100) + '%';
+    document.getElementById('dowhile-bar').textContent = dLen + '단계';
+
+    footer.innerHTML = '같은 답(자릿수 = 2)을 구했는데, while은 <strong>' + wLen + '단계</strong>, do...while은 <strong>' + dLen + '단계</strong>만에 끝났어요.<br>' +
+      'while은 <code>}</code>에서 조건으로 <strong>되돌아가는 점프</strong>가 매번 필요하지만, do...while은 조건이 아래에 있어서 자연스럽게 이어져요!';
+
+    btn.disabled = false;
+    btn.textContent = '\u25B6 다시 실행';
+    running = false;
+
+    // Notify parent iframe of height change
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+    }
+  });
+
+  // ── Initial render (code visible, no highlights) ──
+  renderCodeBlock('while-code', whileCode);
+  renderCodeBlock('dowhile-code', dowhileCode);
+
+  // Auto-resize: notify parent iframe of any size change
+  function notifyResize() {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+    }
+  }
+  notifyResize();
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(notifyResize).observe(document.body);
+  }
+})();
+</script>
+</body>
+</html>
