@@ -412,12 +412,12 @@ html.dark .oq-explain{color:#a7f3d0}
 <script>
 (function(){
   var PUZZLE = {
-    target: 2,
-    targetDisplay: '2',
+    target: 0,
+    targetDisplay: '0',
     targetType: 'number',
-    tokens: {'null':1, '||':1, 'true':1, '+':2, '!':1, '""':1},
-    hint: '<code>null || ""</code>은 뭘 반환할까요? <code>||</code>는 truthy를 찾지만, 둘 다 falsy라면…?',
-    explain: '정답 예시: <code>+!(null || "") + true</code><br>① <code>null || ""</code> → <code>""</code> (null은 falsy, ||가 다음으로 넘어가 ""를 반환)<br>② <code>!""</code> → <code>true</code> (빈 문자열은 falsy, !로 뒤집으면 true)<br>③ <code>+true</code> → <code>1</code> (단항 +는 숫자 변환)<br>④ <code>1 + true</code> → <code>2</code> (true는 숫자 1로 변환)'
+    tokens: {'true':1, '&&':1, '""':1, 'null':1, '||':1, '+':1},
+    hint: '<code>&&</code>는 truthy를 만나면 다음으로, <code>||</code>는 falsy를 만나면 다음으로 넘어가요. 둘을 체이닝하면?',
+    explain: '정답 예시: <code>+((true && null) || "")</code><br>① <code>true && null</code> → <code>null</code> (true는 truthy, &&가 끝까지 평가해 null 반환)<br>② <code>null || ""</code> → <code>""</code> (null은 falsy, ||가 다음으로 넘어가 "" 반환)<br>③ <code>+""</code> → <code>0</code> (단항 +로 숫자 변환)<br><br>다른 풀이: <code>+((true && "") || null)</code><br>① <code>true && ""</code> → <code>""</code> → ② <code>"" || null</code> → <code>null</code> → ③ <code>+null</code> → <code>0</code>'
   };
 
   var TOKEN_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|undefined|typeof|true|false|null|NaN|===|!==|==|!=|&&|\|\||\?\?|\d+(?:\.\d+)?|[+\-*\/!~%]/g;
