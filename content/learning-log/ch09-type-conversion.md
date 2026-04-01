@@ -415,9 +415,9 @@ html.dark .oq-explain{color:#a7f3d0}
     target: 2,
     targetDisplay: '2',
     targetType: 'number',
-    tokens: {'!':1, '""':1, '+':2, 'true':1},
-    hint: '빈 문자열은 falsy — !로 뒤집고, +로 숫자를 만들어보세요',
-    explain: '정답 예시: <code>+!"" + true</code><br>① <code>!""</code> → <code>true</code> (빈 문자열은 falsy, !로 뒤집으면 true)<br>② <code>+true</code> → <code>1</code> (단항 +는 숫자 변환)<br>③ <code>1 + true</code> → <code>2</code> (true는 숫자 1로 변환)'
+    tokens: {'null':1, '||':1, 'true':1, '+':2, '!':1, '""':1},
+    hint: '<code>null || ""</code>은 뭘 반환할까요? <code>||</code>는 truthy를 찾지만, 둘 다 falsy라면…?',
+    explain: '정답 예시: <code>+!(null || "") + true</code><br>① <code>null || ""</code> → <code>""</code> (null은 falsy, ||가 다음으로 넘어가 ""를 반환)<br>② <code>!""</code> → <code>true</code> (빈 문자열은 falsy, !로 뒤집으면 true)<br>③ <code>+true</code> → <code>1</code> (단항 +는 숫자 변환)<br>④ <code>1 + true</code> → <code>2</code> (true는 숫자 1로 변환)'
   };
 
   var TOKEN_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|undefined|typeof|true|false|null|NaN|===|!==|==|!=|&&|\|\||\?\?|\d+(?:\.\d+)?|[+\-*\/!~%]/g;
