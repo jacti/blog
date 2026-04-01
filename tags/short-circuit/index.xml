@@ -625,12 +625,12 @@ html.dark .oq-explain{color:#a7f3d0}
 &lt;script>
 (function(){
 var PUZZLE = {
-target: 2,
-targetDisplay: '2',
+target: 0,
+targetDisplay: '0',
 targetType: 'number',
-tokens: {'null':1, '||':1, 'true':1, '+':2, '!':1, '""':1},
-hint: '&lt;code>null || ""&lt;/code>은 뭘 반환할까요? &lt;code>||&lt;/code>는 truthy를 찾지만, 둘 다 falsy라면…?',
-explain: '정답 예시: &lt;code>+!(null || "") + true&lt;/code>&lt;br>① &lt;code>null || ""&lt;/code> → &lt;code>""&lt;/code> (null은 falsy, ||가 다음으로 넘어가 ""를 반환)&lt;br>② &lt;code>!""&lt;/code> → &lt;code>true&lt;/code> (빈 문자열은 falsy, !로 뒤집으면 true)&lt;br>③ &lt;code>+true&lt;/code> → &lt;code>1&lt;/code> (단항 +는 숫자 변환)&lt;br>④ &lt;code>1 + true&lt;/code> → &lt;code>2&lt;/code> (true는 숫자 1로 변환)'
+tokens: {'true':1, '&amp;&amp;':1, '""':1, 'null':1, '||':1, '+':1},
+hint: '&lt;code>&amp;&amp;&lt;/code>는 truthy를 만나면 다음으로, &lt;code>||&lt;/code>는 falsy를 만나면 다음으로 넘어가요. 둘을 체이닝하면?',
+explain: '정답 예시: &lt;code>+((true &amp;&amp; null) || "")&lt;/code>&lt;br>① &lt;code>true &amp;&amp; null&lt;/code> → &lt;code>null&lt;/code> (true는 truthy, &amp;&amp;가 끝까지 평가해 null 반환)&lt;br>② &lt;code>null || ""&lt;/code> → &lt;code>""&lt;/code> (null은 falsy, ||가 다음으로 넘어가 "" 반환)&lt;br>③ &lt;code>+""&lt;/code> → &lt;code>0&lt;/code> (단항 +로 숫자 변환)&lt;br>&lt;br>다른 풀이: &lt;code>+((true &amp;&amp; "") || null)&lt;/code>&lt;br>① &lt;code>true &amp;&amp; ""&lt;/code> → &lt;code>""&lt;/code> → ② &lt;code>"" || null&lt;/code> → &lt;code>null&lt;/code> → ③ &lt;code>+null&lt;/code> → &lt;code>0&lt;/code>'
 };
 var TOKEN_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|undefined|typeof|true|false|null|NaN|===|!==|==|!=|&amp;&amp;|\|\||\?\?|\d+(?:\.\d+)?|[+\-*\/!~%]/g;
 function tokenize(expr){
