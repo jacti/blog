@@ -888,4 +888,164 @@ title="Copy code"
 &lt;/tr>
 &lt;/tbody>
 &lt;/table>
-&lt;p>타입 변환은 JS에서 가장 자주 버그를 만드는 영역이에요. 규칙 자체는 많지 않지만, &lt;strong>&amp;ldquo;이 맥락에서 어떤 변환이 일어나는지&amp;quot;를 의식하는 습관&lt;/strong>이 중요해요. 확실하지 않으면 명시적으로 변환하세요 — 코드의 의도가 명확해지고, 동료도 (미래의 나도) 감사할 거예요.&lt;/p></description></item></channel></rss>
+&lt;p>타입 변환은 JS에서 가장 자주 버그를 만드는 영역이에요. 규칙 자체는 많지 않지만, &lt;strong>&amp;ldquo;이 맥락에서 어떤 변환이 일어나는지&amp;quot;를 의식하는 습관&lt;/strong>이 중요해요. 확실하지 않으면 명시적으로 변환하세요 — 코드의 의도가 명확해지고, 동료도 (미래의 나도) 감사할 거예요.&lt;/p>
+&lt;hr>
+&lt;h2>연산자 퀴즈 — 타입 변환 마스터 도전!&lt;span class="hx:absolute hx:-mt-20" id="연산자-퀴즈--타입-변환-마스터-도전">&lt;/span>
+&lt;a href="#%ec%97%b0%ec%82%b0%ec%9e%90-%ed%80%b4%ec%a6%88--%ed%83%80%ec%9e%85-%eb%b3%80%ed%99%98-%eb%a7%88%ec%8a%a4%ed%84%b0-%eb%8f%84%ec%a0%84" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>위에서 배운 내용을 직접 실험해보세요. 주어진 요소들을 &lt;strong>전부&lt;/strong> 사용해서 목표 값을 만들어야 해요. 괄호 &lt;code>()&lt;/code>는 무제한이에요.&lt;/p>
+&lt;div id="oq-root">&lt;/div>
+&lt;style>
+.oq-box{max-width:520px;margin:1.5rem 0;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid #d1d5db;font-family:inherit;background:#f8fafc}
+html.dark .oq-box{background:#1e293b;border-color:#334155}
+.oq-target{margin:.75rem 0;padding:.75rem 1rem;border-radius:8px;background:#e0f2fe;text-align:center;font-size:1.1rem}
+html.dark .oq-target{background:#0c4a6e}
+.oq-target code{font-size:1.25rem;font-weight:700;color:#0369a1}
+html.dark .oq-target code{color:#7dd3fc}
+.oq-target .oq-type{font-size:.85rem;opacity:.7;margin-left:.35rem}
+.oq-tokens{display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0}
+.oq-tok{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .6rem;border-radius:6px;font-family:'SF Mono',Monaco,monospace;font-size:.85rem;font-weight:500;border:1px solid #a7f3d0;background:#ecfdf5;color:#065f46;transition:all .2s}
+html.dark .oq-tok{border-color:#064e3b;background:#064e3b;color:#6ee7b7}
+.oq-tok.used{border-color:#d1d5db;background:#f1f5f9;color:#94a3b8;text-decoration:line-through}
+html.dark .oq-tok.used{border-color:#334155;background:#1e293b;color:#475569}
+.oq-tok.over{border-color:#fca5a5;background:#fef2f2;color:#dc2626}
+html.dark .oq-tok.over{border-color:#7f1d1d;background:#450a0a;color:#fca5a5}
+.oq-tok .oq-cnt{font-size:.7rem;opacity:.65}
+.oq-paren{font-size:.8rem;color:#64748b;margin-left:.25rem}
+.oq-input-wrap{margin:.75rem 0}
+.oq-input{width:100%;padding:.6rem .8rem;border-radius:8px;border:1.5px solid #cbd5e1;font-family:'SF Mono',Monaco,monospace;font-size:1rem;background:#fff;color:#0f172a;outline:none;transition:border-color .15s}
+html.dark .oq-input{background:#0f172a;border-color:#475569;color:#e2e8f0}
+.oq-input:focus{border-color:#0ea5e9}
+.oq-result{padding:.6rem .8rem;border-radius:8px;font-family:'SF Mono',Monaco,monospace;font-size:.9rem;min-height:2.4rem;background:#f1f5f9;color:#475569;transition:all .2s}
+html.dark .oq-result{background:#0f172a;color:#94a3b8}
+.oq-result.error{color:#ef4444}
+.oq-result.correct{background:#ecfdf5;color:#059669;font-weight:600}
+html.dark .oq-result.correct{background:#064e3b;color:#6ee7b7}
+.oq-label{font-size:.8rem;font-weight:600;color:#64748b;margin-bottom:.3rem}
+html.dark .oq-label{color:#94a3b8}
+.oq-success{margin-top:.75rem;padding:.75rem 1rem;border-radius:8px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;display:none}
+html.dark .oq-success{background:#064e3b;border-color:#065f46;color:#a7f3d0}
+.oq-success.show{display:block;animation:oq-pop .3s ease}
+@keyframes oq-pop{0%{transform:scale(.95);opacity:0}100%{transform:scale(1);opacity:1}}
+.oq-hint-btn{margin-top:.5rem;padding:.3rem .7rem;border-radius:6px;border:1px solid #cbd5e1;background:transparent;color:#64748b;font-size:.8rem;cursor:pointer}
+html.dark .oq-hint-btn{border-color:#475569;color:#94a3b8}
+.oq-hint{margin-top:.4rem;font-size:.85rem;color:#0369a1;display:none}
+html.dark .oq-hint{color:#7dd3fc}
+.oq-explain{margin-top:.5rem;font-size:.85rem;line-height:1.5;color:#065f46;display:none}
+html.dark .oq-explain{color:#a7f3d0}
+&lt;/style>
+&lt;script>
+(function(){
+var PUZZLE = {
+target: 2,
+targetDisplay: '2',
+targetType: 'number',
+tokens: {'!':1, '""':1, '+':2, 'true':1},
+hint: '빈 문자열은 falsy — !로 뒤집고, +로 숫자를 만들어보세요',
+explain: '정답 예시: &lt;code>+!"" + true&lt;/code>&lt;br>① &lt;code>!""&lt;/code> → &lt;code>true&lt;/code> (빈 문자열은 falsy, !로 뒤집으면 true)&lt;br>② &lt;code>+true&lt;/code> → &lt;code>1&lt;/code> (단항 +는 숫자 변환)&lt;br>③ &lt;code>1 + true&lt;/code> → &lt;code>2&lt;/code> (true는 숫자 1로 변환)'
+};
+var TOKEN_RE = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|undefined|typeof|true|false|null|NaN|===|!==|==|!=|&amp;&amp;|\|\||\?\?|\d+(?:\.\d+)?|[+\-*\/!~%]/g;
+function tokenize(expr){
+var m, out=[];
+TOKEN_RE.lastIndex=0;
+while((m=TOKEN_RE.exec(expr))!==null) out.push(m[0].replace(/'/g,'"'));
+return out;
+}
+function countUsed(expr){
+var toks=tokenize(expr), counts={};
+for(var i=0;i&lt;toks.length;i++) counts[toks[i]]=(counts[toks[i]]||0)+1;
+return counts;
+}
+function safeEval(expr){
+if(!expr.trim()) return {ok:false, msg:'입력을 시작하세요'};
+// 보안: 할당문, 함수 호출 등 차단 (괄호 안 연산만 허용)
+if(/[;{}]|=>|function|eval|new |delete |void /.test(expr))
+return {ok:false, msg:'허용되지 않는 구문이에요'};
+try{
+var r = (0,eval)(expr);
+return {ok:true, value:r, type:typeof r};
+}catch(e){
+return {ok:false, msg:'구문 오류'};
+}
+}
+function render(){
+var root=document.getElementById('oq-root');
+if(!root) return;
+var html='&lt;div class="oq-box">';
+html+='&lt;div class="oq-label">목표값&lt;/div>';
+html+='&lt;div class="oq-target">&lt;code>'+PUZZLE.targetDisplay+'&lt;/code>&lt;span class="oq-type">'+PUZZLE.targetType+'&lt;/span>&lt;/div>';
+html+='&lt;div class="oq-label">사용할 요소 (전부 사용해야 해요!)&lt;/div>';
+html+='&lt;div class="oq-tokens" id="oq-toks">';
+var keys=Object.keys(PUZZLE.tokens);
+for(var i=0;i&lt;keys.length;i++){
+var k=keys[i], n=PUZZLE.tokens[k];
+html+='&lt;span class="oq-tok" data-tok="'+k+'">&lt;code>'+k+'&lt;/code>&lt;span class="oq-cnt">&amp;times;'+n+'&lt;/span>&lt;/span>';
+}
+html+='&lt;span class="oq-paren">( ) 무제한&lt;/span>';
+html+='&lt;/div>';
+html+='&lt;div class="oq-input-wrap">&lt;input class="oq-input" id="oq-in" placeholder="식을 입력하세요 (예: 1 + 1)" autocomplete="off" spellcheck="false">&lt;/div>';
+html+='&lt;div class="oq-label">현재 평가 결과&lt;/div>';
+html+='&lt;div class="oq-result" id="oq-res">입력을 시작하세요&lt;/div>';
+html+='&lt;div class="oq-success" id="oq-ok">&lt;strong>정답!&lt;/strong> 타입 변환의 연쇄를 꿰뚫었어요.&lt;span class="oq-explain" id="oq-exp">&lt;/span>&lt;/div>';
+html+='&lt;button class="oq-hint-btn" id="oq-hint-btn">힌트 보기&lt;/button>';
+html+='&lt;div class="oq-hint" id="oq-hint">'+PUZZLE.hint+'&lt;/div>';
+html+='&lt;/div>';
+root.innerHTML=html;
+var input=document.getElementById('oq-in');
+var res=document.getElementById('oq-res');
+var toks=document.getElementById('oq-toks').children;
+var ok=document.getElementById('oq-ok');
+var exp=document.getElementById('oq-exp');
+var hintBtn=document.getElementById('oq-hint-btn');
+var hintEl=document.getElementById('oq-hint');
+var solved=false;
+hintBtn.addEventListener('click',function(){
+hintEl.style.display=hintEl.style.display==='block'?'none':'block';
+hintBtn.textContent=hintEl.style.display==='block'?'힌트 숨기기':'힌트 보기';
+});
+input.addEventListener('input',function(){
+if(solved) return;
+var expr=input.value;
+var used=countUsed(expr);
+var keys=Object.keys(PUZZLE.tokens);
+var allValid=true;
+// 토큰 뱃지 업데이트
+var allUsed=true;
+for(var i=0;i&lt;keys.length;i++){
+var k=keys[i], allowed=PUZZLE.tokens[k], u=used[k]||0;
+var el=toks[i];
+var remaining=allowed-u;
+el.className='oq-tok'+(remaining&lt;=0?(remaining&lt;0?' over':' used'):'');
+el.querySelector('.oq-cnt').textContent=(remaining>0?'\u00d7'+remaining:remaining&lt;0?'\u00d7'+remaining:'\u2713');
+if(remaining&lt;0) allValid=false;
+if(remaining>0) allUsed=false;
+}
+// 허용되지 않은 토큰 체크
+for(var t in used){
+if(!(t in PUZZLE.tokens)){allValid=false;break;}
+}
+// 모든 토큰을 전부 사용해야 함
+if(!allUsed) allValid=false;
+var ev=safeEval(expr);
+if(!ev.ok){
+res.textContent=ev.msg;
+res.className='oq-result'+(ev.msg==='입력을 시작하세요'?'':' error');
+return;
+}
+var display=typeof ev.value==='string'?'"'+ev.value+'"':String(ev.value);
+res.textContent=display+' ('+ev.type+')';
+var match=Number.isNaN(PUZZLE.target)?Number.isNaN(ev.value):ev.value===PUZZLE.target;
+if(match &amp;&amp; allValid){
+res.className='oq-result correct';
+ok.className='oq-success show';
+exp.innerHTML=PUZZLE.explain;
+exp.style.display='block';
+solved=true;
+input.style.borderColor='#059669';
+}else{
+res.className='oq-result';
+}
+});
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render);
+else render();
+})();
+&lt;/script></description></item></channel></rss>
