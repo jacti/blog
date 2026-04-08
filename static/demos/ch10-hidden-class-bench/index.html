@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hidden Class vs Dictionary 모드 벤치마크</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --bar-fast: #10b981;
+    --bar-undef: #3b82f6;
+    --bar-slow: #ef4444;
+    --bar-track: #e2e8f0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --code-bg: #0f172a;
+      --bar-track: #334155;
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .demo-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+
+  .demo-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .demo-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .demo-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    width: 100%;
+  }
+
+  .demo-body { padding: 20px; }
+
+  /* 코드 블록들 */
+  .code-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .code-group {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .code-card {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .code-card-header {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .code-card-header .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .code-card:nth-child(1) .code-card-header { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+  .code-card:nth-child(1) .dot { background: var(--bar-fast); }
+  .code-card:nth-child(2) .code-card-header { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+  .code-card:nth-child(2) .dot { background: var(--bar-undef); }
+  .code-card:nth-child(3) .code-card-header { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+  .code-card:nth-child(3) .dot { background: var(--bar-slow); }
+
+  .code-card pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    overflow-x: auto;
+    margin: 0;
+  }
+
+  .code-card pre .kw { color: #c084fc; }
+  .code-card pre .cm { color: #64748b; }
+  .code-card pre .hl { background: rgba(239, 68, 68, 0.2); display: inline-block; width: 100%; margin: 0 -12px; padding: 0 12px; }
+
+  /* 컨트롤 */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .run-btn {
+    background: var(--teal);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .slider-group input[type="range"] {
+    width: 120px;
+    accent-color: var(--teal);
+  }
+
+  /* 결과 바 */
+  .results { display: flex; flex-direction: column; gap: 14px; }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .result-label {
+    min-width: 180px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 500px) {
+    .result-label { min-width: 120px; font-size: 12px; }
+  }
+
+  .bar-container {
+    flex: 1;
+    height: 32px;
+    background: var(--bar-track);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    min-width: 0;
+  }
+
+  .bar-fill span {
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .bar-fast { background: var(--bar-fast); }
+  .bar-undef { background: var(--bar-undef); }
+  .bar-slow { background: var(--bar-slow); }
+
+  .ratio-badge {
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  /* 상태 */
+  .status {
+    text-align: center;
+    padding: 24px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .insight {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(16, 185, 129, 0.08);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    display: none;
+  }
+
+  .insight strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>Hidden Class vs Dictionary 모드 벤치마크</h2>
+    <p><code>delete</code> 한 번이 프로퍼티 접근 속도에 어떤 영향을 주는지 직접 확인해 보세요.</p>
+  </div>
+  <div class="demo-body">
+    <!-- 코드 비교 -->
+    <div class="code-group">
+      <div class="code-card">
+        <div class="code-card-header"><span class="dot"></span>Fast 모드</div>
+        <pre><span class="kw">const</span> obj = {
+  a: 1, b: 2,
+  c: 3, d: 4, e: 5
+};
+<span class="cm">// Hidden Class 유지됨</span></pre>
+      </div>
+      <div class="code-card">
+        <div class="code-card-header"><span class="dot"></span>undefined 할당</div>
+        <pre><span class="kw">const</span> obj = {
+  a: 1, b: 2,
+  c: 3, d: 4, e: 5,
+  temp: 0
+};
+obj.temp = <span class="kw">undefined</span>;
+<span class="cm">// Hidden Class 유지됨</span></pre>
+      </div>
+      <div class="code-card">
+        <div class="code-card-header"><span class="dot"></span>delete 사용</div>
+        <pre><span class="kw">const</span> obj = {
+  a: 1, b: 2,
+  c: 3, d: 4, e: 5,
+  temp: 0
+};
+<span class="hl"><span class="kw">delete</span> obj.temp;</span>
+<span class="cm">// Hidden Class 파괴!</span></pre>
+      </div>
+    </div>
+
+    <!-- 컨트롤 -->
+    <div class="controls">
+      <button class="run-btn" id="runBtn" onclick="runBenchmark()">▶ 벤치마크 실행</button>
+      <div class="slider-group">
+        <label for="countSlider">객체 수:</label>
+        <input type="range" id="countSlider" min="10000" max="200000" step="10000" value="100000">
+        <span id="countLabel">100,000</span>
+      </div>
+    </div>
+
+    <!-- 결과 -->
+    <div id="statusArea" class="status">
+      ▶ 버튼을 눌러 벤치마크를 실행해 보세요
+    </div>
+
+    <div id="resultsArea" class="results" style="display:none;">
+      <div class="result-row">
+        <span class="result-label">✅ Fast 모드</span>
+        <div class="bar-container"><div class="bar-fill bar-fast" id="barFast"><span></span></div></div>
+        <span class="ratio-badge" id="ratioFast"></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">✅ undefined 할당</span>
+        <div class="bar-container"><div class="bar-fill bar-undef" id="barUndef"><span></span></div></div>
+        <span class="ratio-badge" id="ratioUndef"></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">❌ delete 사용 (Slow)</span>
+        <div class="bar-container"><div class="bar-fill bar-slow" id="barSlow"><span></span></div></div>
+        <span class="ratio-badge" id="ratioSlow"></span>
+      </div>
+    </div>
+
+    <div class="insight" id="insight"></div>
+  </div>
+</div>
+
+<script>
+const countSlider = document.getElementById('countSlider');
+const countLabel = document.getElementById('countLabel');
+countSlider.addEventListener('input', () => {
+  countLabel.textContent = Number(countSlider.value).toLocaleString();
+});
+
+function createFast(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) arr.push({ a: 1, b: 2, c: 3, d: 4, e: 5 });
+  return arr;
+}
+
+function createUndef(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) {
+    const o = { a: 1, b: 2, c: 3, d: 4, e: 5, temp: 0 };
+    o.temp = undefined;
+    arr.push(o);
+  }
+  return arr;
+}
+
+function createSlow(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) {
+    const o = { a: 1, b: 2, c: 3, d: 4, e: 5, temp: 0 };
+    delete o.temp;
+    arr.push(o);
+  }
+  return arr;
+}
+
+function measure(objects, rounds) {
+  let sum = 0;
+  const t0 = performance.now();
+  for (let r = 0; r < rounds; r++) {
+    for (let i = 0; i < objects.length; i++) {
+      sum += objects[i].a + objects[i].b + objects[i].c + objects[i].d + objects[i].e;
+    }
+  }
+  return { ms: performance.now() - t0, sum };
+}
+
+async function runBenchmark() {
+  const btn = document.getElementById('runBtn');
+  const status = document.getElementById('statusArea');
+  const results = document.getElementById('resultsArea');
+  const insight = document.getElementById('insight');
+  const count = Number(countSlider.value);
+  const rounds = 50;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 측정 중...';
+  results.style.display = 'none';
+  insight.style.display = 'none';
+  status.style.display = 'block';
+  status.textContent = '워밍업 중...';
+
+  await new Promise(r => setTimeout(r, 50));
+
+  // 워밍업
+  const wf = createFast(count);
+  const wu = createUndef(count);
+  const ws = createSlow(count);
+  measure(wf, 5); measure(wu, 5); measure(ws, 5);
+
+  status.textContent = '본 측정 중... (Fast 모드)';
+  await new Promise(r => setTimeout(r, 30));
+  const fast = measure(createFast(count), rounds);
+
+  status.textContent = '본 측정 중... (undefined 할당)';
+  await new Promise(r => setTimeout(r, 30));
+  const undef = measure(createUndef(count), rounds);
+
+  status.textContent = '본 측정 중... (delete 사용)';
+  await new Promise(r => setTimeout(r, 30));
+  const slow = measure(createSlow(count), rounds);
+
+  // 결과 표시
+  status.style.display = 'none';
+  results.style.display = 'flex';
+
+  const maxMs = Math.max(fast.ms, undef.ms, slow.ms);
+
+  function showBar(id, ratioId, ms, baseline) {
+    const pct = (ms / maxMs) * 100;
+    const ratio = ms / baseline;
+    const bar = document.getElementById(id);
+    const badge = document.getElementById(ratioId);
+    bar.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bar.style.width = pct + '%';
+      });
+    });
+    bar.querySelector('span').textContent = ms.toFixed(0) + 'ms';
+    badge.textContent = '×' + ratio.toFixed(1);
+  }
+
+  showBar('barFast', 'ratioFast', fast.ms, fast.ms);
+  showBar('barUndef', 'ratioUndef', undef.ms, fast.ms);
+  showBar('barSlow', 'ratioSlow', slow.ms, fast.ms);
+
+  const slowRatio = (slow.ms / fast.ms).toFixed(1);
+  insight.innerHTML = `<strong>delete</strong> 한 번으로 Hidden Class가 파괴되면, 같은 프로퍼티 접근이 <strong>약 ${slowRatio}배 느려집니다.</strong><br>값을 제거하고 싶다면 <code>obj.prop = undefined</code>로 Hidden Class를 유지하는 것이 성능에 유리해요.`;
+  insight.style.display = 'block';
+
+  btn.disabled = false;
+  btn.textContent = '▶ 다시 실행';
+
+  // 높이 동기화
+  notifyHeight();
+}
+
+function notifyHeight() {
+  const h = document.body.scrollHeight;
+  window.parent.postMessage({ type: 'demo-resize', height: h }, '*');
+}
+
+window.addEventListener('resize', notifyHeight);
+setTimeout(notifyHeight, 100);
+</script>
+</body>
+</html>
