@@ -1,4 +1,4 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Deep-Dive</title><link>https://blog.girae.me/tags/deep-dive/</link><description>Recent content in Deep-Dive on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Wed, 01 Apr 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/deep-dive/index.xml" rel="self" type="application/rss+xml"/><item><title>ch08. 제어문 — 코드 작성의 가치는 어떻게 바뀌었는가</title><link>https://blog.girae.me/learning-log/ch08-control-flow/</link><pubDate>Wed, 25 Mar 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch08-control-flow/</guid><description>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Deep-Dive</title><link>https://blog.girae.me/tags/deep-dive/</link><description>Recent content in Deep-Dive on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Wed, 08 Apr 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/deep-dive/index.xml" rel="self" type="application/rss+xml"/><item><title>ch08. 제어문 — 코드 작성의 가치는 어떻게 바뀌었는가</title><link>https://blog.girae.me/learning-log/ch08-control-flow/</link><pubDate>Wed, 25 Mar 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch08-control-flow/</guid><description>
 &lt;p>프로그램은 위에서 아래로 흐릅니다. 제어문은 이 흐름을 &lt;strong>꺾는&lt;/strong> 도구예요. &lt;code>if&lt;/code>로 갈래를 나누고, &lt;code>for&lt;/code>로 되돌리고, &lt;code>break&lt;/code>로 끊어요.&lt;/p>
 &lt;p>그런데 &amp;ldquo;흐름을 꺾는 방법&amp;quot;을 고르는 기준은 시대에 따라 달랐어요. 예전에는 &lt;strong>CPU 사이클을 줄이는 것&lt;/strong>이 좋은 코드의 조건이었고, 지금은 &lt;strong>읽는 사람이 빠르게 이해하는 것&lt;/strong>이 좋은 코드의 조건이에요. 제어문의 설계를 따라가다 보면 이 가치 변화가 그대로 보여요.&lt;/p>
 &lt;hr>
@@ -1048,4 +1048,657 @@ res.className='oq-result';
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render);
 else render();
 })();
-&lt;/script></description></item></channel></rss>
+&lt;/script></description></item><item><title>ch10. 객체 리터럴 — 목판과 복사기, 두 세계의 객체 만들기</title><link>https://blog.girae.me/learning-log/ch10-object-literal/</link><pubDate>Wed, 08 Apr 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch10-object-literal/</guid><description>
+&lt;p>Java에서는 클래스를 먼저 정의해야 객체를 만들 수 있어요. JavaScript에서는 &lt;code>{}&lt;/code>만 쓰면 바로 객체가 생겨요. 이건 단순한 문법 차이가 아니라, 객체를 바라보는 &lt;strong>철학 자체가 다르기 때문&lt;/strong>이에요. 이번 글에서는 객체 리터럴의 문법을 넘어서, &amp;ldquo;JS는 왜 이렇게 동작하는가&amp;quot;를 엔진 내부까지 파고들어 정리했어요.&lt;/p>
+&lt;hr>
+&lt;h2>1. 목판 인쇄 vs 복사기 — 두 세계의 객체 만들기&lt;span class="hx:absolute hx:-mt-20" id="1-목판-인쇄-vs-복사기--두-세계의-객체-만들기">&lt;/span>
+&lt;a href="#1-%eb%aa%a9%ed%8c%90-%ec%9d%b8%ec%87%84-vs-%eb%b3%b5%ec%82%ac%ea%b8%b0--%eb%91%90-%ec%84%b8%ea%b3%84%ec%9d%98-%ea%b0%9d%ec%b2%b4-%eb%a7%8c%eb%93%a4%ea%b8%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>프로그래밍 언어에서 객체를 만드는 방식은 크게 두 갈래로 나뉘어요.&lt;/p>
+&lt;h3>목판 인쇄 방식 (클래스 기반 — Java, C++)&lt;span class="hx:absolute hx:-mt-20" id="목판-인쇄-방식-클래스-기반--java-c">&lt;/span>
+&lt;a href="#%eb%aa%a9%ed%8c%90-%ec%9d%b8%ec%87%84-%eb%b0%a9%ec%8b%9d-%ed%81%b4%eb%9e%98%ec%8a%a4-%ea%b8%b0%eb%b0%98--java-c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>팔만대장경을 떠올려 보세요. 경전을 찍으려면 먼저 &lt;strong>목판(경판)에 글자를 하나하나 새겨야&lt;/strong> 해요. 목판 자체는 경전이 아니에요. 목판에 먹칠을 하고 종이에 찍으면 그제서야 경전이 나오죠.&lt;/p>
+&lt;p>새로운 경전을 만들고 싶으면? 같은 목판에 넣고 같은 방식으로 찍으면 돼요. 하지만 &lt;strong>내용을 수정하려면 새 목판을 깎아야&lt;/strong> 해요. 이미 찍힌 종이에 글자를 추가하는 것도 불가능하고요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-java" data-lang="java">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Java — 목판(클래스)을 먼저 새겨야 한다&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="kd">class&lt;/span> &lt;span class="nc">Dog&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="n">String&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="kt">int&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">age&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w"> &lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nf">bark&lt;/span>&lt;span class="p">()&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">System&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">out&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">println&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;Woof!&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Dog&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">myDog&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">new&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Dog&lt;/span>&lt;span class="p">();&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c1">// 목판으로 찍어냄&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="n">Dog&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">yourDog&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">new&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">Dog&lt;/span>&lt;span class="p">();&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c1">// 같은 목판으로 또 찍어냄&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="w">&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">myDog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="na">color&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s">&amp;#34;brown&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="err">❌&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">컴파일&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">에러&lt;/span>&lt;span class="o">!&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">목판에&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">없는&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">건&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">추가&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">불가&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[목판 = 클래스 Dog] [찍어낸 경전 = 인스턴스 myDog]
+name: String → name: null
+age: int → age: 0
+bark() → bark()
+목판(추상) → 경전(구체). 목판 없이는 경전을 찍을 수 없다.
+내용을 바꾸려면 새 목판을 깎아야 한다.&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h3>복사기 방식 (프로토타입 기반 — JavaScript)&lt;span class="hx:absolute hx:-mt-20" id="복사기-방식-프로토타입-기반--javascript">&lt;/span>
+&lt;a href="#%eb%b3%b5%ec%82%ac%ea%b8%b0-%eb%b0%a9%ec%8b%9d-%ed%94%84%eb%a1%9c%ed%86%a0%ed%83%80%ec%9e%85-%ea%b8%b0%eb%b0%98--javascript" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>복사기는 다르죠. &lt;strong>이미 있는 문서를 넣고 복사&lt;/strong>해요. 원본도 문서고, 복사본도 문서예요. 복사 후에 펜으로 내용을 수정하거나 페이지를 추가할 수도 있어요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// JavaScript — 원본 문서(객체)를 복사해서 새 문서(객체)를 만든다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">bark&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;Woof!&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">myDog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">Object&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">create&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">dog&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// dog을 원본으로 복사
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">myDog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 복사본에 자유롭게 추가
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">myDog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 이것도 OK
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">myDog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">bark&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// &amp;#34;Woof!&amp;#34; — 원본에서 찾아온다
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[원본 문서 = dog] [복사본 = myDog]
+bark() ←──── __proto__ 연결
+name: &amp;#34;멍이&amp;#34;
+age: 3
+구체 → 구체. 원본도 객체, 복사본도 객체. 설계도가 필요 없다.&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>핵심 차이를 정리하면:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;/th>
+&lt;th>목판 인쇄 (클래스 기반)&lt;/th>
+&lt;th>복사기 (프로토타입 기반)&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>필요한 것&lt;/td>
+&lt;td>목판(클래스) = 추상적 설계도&lt;/td>
+&lt;td>원본 문서(객체) = 이미 존재하는 실체&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>제품&lt;/td>
+&lt;td>목판에서 찍어낸 경전(인스턴스)&lt;/td>
+&lt;td>원본을 복사한 문서(객체)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>내용 수정&lt;/td>
+&lt;td>새 목판을 깎아야 함&lt;/td>
+&lt;td>복사본에 펜으로 자유롭게 수정&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>구조 추가&lt;/td>
+&lt;td>불가능 — 목판에 새긴 대로만&lt;/td>
+&lt;td>언제든 페이지 추가/삭제 가능&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>상속&lt;/td>
+&lt;td>목판 → 목판 (클래스 → 클래스)&lt;/td>
+&lt;td>문서 → 문서 (객체 → 객체)&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">JS의 &lt;code>class&lt;/code> 문법(ES6)은 &lt;strong>목판 인쇄처럼 포장한 복사기&lt;/strong>예요. 겉으로는 클래스처럼 보이지만, 내부는 여전히 프로토타입 기반으로 동작해요. 이 부분은 19장(프로토타입)에서 자세히 다뤄요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>2. 객체 리터럴 — &lt;code>{}&lt;/code>의 두 얼굴&lt;span class="hx:absolute hx:-mt-20" id="2-객체-리터럴--의-두-얼굴">&lt;/span>
+&lt;a href="#2-%ea%b0%9d%ec%b2%b4-%eb%a6%ac%ed%84%b0%eb%9f%b4--%ec%9d%98-%eb%91%90-%ec%96%bc%ea%b5%b4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>JS에서 객체를 가장 간단하게 만드는 방법은 &lt;strong>객체 리터럴&lt;/strong>이에요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">3&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>여기서 하나 짚을 게 있어요. 같은 중괄호 &lt;code>{}&lt;/code>인데, 어디서는 세미콜론을 붙이고 어디서는 안 붙여요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 객체 리터럴 — 값으로 평가되는 표현식이라 세미콜론을 붙인다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 코드 블록 — 문(statement)이라 세미콜론을 안 붙인다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;hi&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">객체 리터럴의 &lt;code>{}&lt;/code>는 &lt;strong>값을 만들어내는 표현식&lt;/strong>이에요. &lt;code>const dog = 42;&lt;/code>에서 &lt;code>42&lt;/code>와 같은 위치에 있는 거죠. 반면 &lt;code>if&lt;/code>의 &lt;code>{}&lt;/code>는 코드를 묶는 블록이라 값이 아니에요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>3. 프로퍼티 — 키와 값의 규칙&lt;span class="hx:absolute hx:-mt-20" id="3-프로퍼티--키와-값의-규칙">&lt;/span>
+&lt;a href="#3-%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0--%ed%82%a4%ec%99%80-%ea%b0%92%ec%9d%98-%ea%b7%9c%ec%b9%99" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>객체는 &lt;strong>프로퍼티(키-값 쌍)의 집합&lt;/strong>이에요.&lt;/p>
+&lt;h3>키의 타입 — 문자열이 기본, Symbol은 예외&lt;span class="hx:absolute hx:-mt-20" id="키의-타입--문자열이-기본-symbol은-예외">&lt;/span>
+&lt;a href="#%ed%82%a4%ec%9d%98-%ed%83%80%ec%9e%85--%eb%ac%b8%ec%9e%90%ec%97%b4%ec%9d%b4-%ea%b8%b0%eb%b3%b8-symbol%ec%9d%80-%ec%98%88%ec%99%b8" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>[]&lt;/code> 안에 무엇을 넣든 &lt;strong>표현식으로 평가&lt;/strong>돼요. 그 결과값이 키로 사용되는데, 대부분은 문자열로 변환돼요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;숫자&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 1 → &amp;#34;1&amp;#34;로 변환
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;불리언&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// true → &amp;#34;true&amp;#34;로 변환
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="kc">null&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;널&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// null → &amp;#34;null&amp;#34;로 변환
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nb">Object&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">keys&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">));&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// [&amp;#39;1&amp;#39;, &amp;#39;true&amp;#39;, &amp;#39;null&amp;#39;] — 전부 문자열이 되었다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s1">&amp;#39;1&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">===&lt;/span> &lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">];&lt;/span> &lt;span class="c1">// true — 같은 키다
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>그런데 &lt;strong>Symbol만은 문자열로 변환되지 않고 그대로 키가 돼요&lt;/strong>:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">sym&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">Symbol&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;id&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">sym&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;심볼 값&amp;#34;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// Symbol은 문자열로 변환되지 않는다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;Symbol(id)&amp;#34;&lt;/span>&lt;span class="p">];&lt;/span> &lt;span class="c1">// undefined — 문자열 키 &amp;#34;Symbol(id)&amp;#34;는 없다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">sym&lt;/span>&lt;span class="p">];&lt;/span> &lt;span class="c1">// &amp;#34;심볼 값&amp;#34; — Symbol 값 자체가 키다
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>정리하면, &lt;code>[]&lt;/code>는 &amp;ldquo;문자열로 변환하는 문법&amp;quot;이 아니라 &amp;ldquo;표현식을 평가하는 문법&amp;quot;이에요. 평가 결과의 타입에 따라 동작이 달라져요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[]에 넣으면
+├── 문자열 → 그대로 문자열 키
+├── Symbol → 그대로 Symbol 키 (변환 없음, 유일한 예외)
+└── 그 외 → 문자열로 변환 → 문자열 키&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h3>마침표(&lt;code>.&lt;/code>) vs 대괄호(&lt;code>[]&lt;/code>) 접근&lt;span class="hx:absolute hx:-mt-20" id="마침표-vs-대괄호-접근">&lt;/span>
+&lt;a href="#%eb%a7%88%ec%b9%a8%ed%91%9c-vs-%eb%8c%80%ea%b4%84%ed%98%b8-%ec%a0%91%ea%b7%bc" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">key&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="c1">// &amp;#34;멍이&amp;#34; — . 뒤는 항상 문자열 리터럴 취급
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">key&lt;/span> &lt;span class="c1">// undefined — 문자열 &amp;#34;key&amp;#34;로 찾음 (변수가 아님!)
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">key&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// &amp;#34;멍이&amp;#34; — 변수 key의 값 &amp;#34;name&amp;#34;으로 찾음
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;strong>&lt;code>[]&lt;/code> 안은 표현식으로 평가돼요.&lt;/strong> 따옴표가 없으면 변수로, 있으면 문자열 리터럴로 해석해요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// 문자열 리터럴 → &amp;#34;name&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nx">name&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// 변수 name의 값을 평가
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;na&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s2">&amp;#34;me&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// 표현식 → &amp;#34;name&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// 표현식 → 2 → 문자열 &amp;#34;2&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>상황&lt;/th>
+&lt;th>&lt;code>.&lt;/code>&lt;/th>
+&lt;th>&lt;code>[]&lt;/code>&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>일반적인 프로퍼티&lt;/td>
+&lt;td>&lt;code>obj.name&lt;/code>&lt;/td>
+&lt;td>&lt;code>obj[&amp;quot;name&amp;quot;]&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>특수문자 포함 키&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;td>&lt;code>obj[&amp;quot;first-name&amp;quot;]&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>동적 키 (변수)&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;td>&lt;code>obj[key]&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>Symbol 키&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;td>&lt;code>obj[sym]&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;hr>
+&lt;h2>4. 찰흙인데 어떻게 빠르지? — V8 Hidden Class&lt;span class="hx:absolute hx:-mt-20" id="4-찰흙인데-어떻게-빠르지--v8-hidden-class">&lt;/span>
+&lt;a href="#4-%ec%b0%b0%ed%9d%99%ec%9d%b8%eb%8d%b0-%ec%96%b4%eb%96%bb%ea%b2%8c-%eb%b9%a0%eb%a5%b4%ec%a7%80--v8-hidden-class" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기서 자연스러운 의문이 생겨요. JS 객체는 런타임에 프로퍼티를 자유롭게 추가/삭제할 수 있는데, &lt;strong>어떻게 C++에 가까운 속도로 프로퍼티에 접근할 수 있을까?&lt;/strong>&lt;/p>
+&lt;p>C++에서 클래스를 미리 정의하는 이유 중 하나는, 컴파일 타임에 &lt;strong>메모리 레이아웃을 확정&lt;/strong>하기 위해서예요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[C&amp;#43;&amp;#43; Dog 인스턴스 — 컴파일 시 크기 확정]
+┌─────────────────────────┐
+│ name (32바이트, 오프셋 0) │
+│ age (4바이트, 오프셋 32) │
+└─────────────────────────┘
+→ 필드 접근 = 단순 오프셋 계산 (초고속)&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>JS에는 이런 사전 정보가 없잖아요. 그래서 V8 엔진(Chrome, Node.js)은 &lt;strong>Hidden Class&lt;/strong>라는 전략을 씁니다.&lt;/p>
+&lt;h3>Hidden Class — 엔진이 알아서 만드는 설계도&lt;span class="hx:absolute hx:-mt-20" id="hidden-class--엔진이-알아서-만드는-설계도">&lt;/span>
+&lt;a href="#hidden-class--%ec%97%94%ec%a7%84%ec%9d%b4-%ec%95%8c%ec%95%84%ec%84%9c-%eb%a7%8c%eb%93%9c%eb%8a%94-%ec%84%a4%ea%b3%84%eb%8f%84" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span> &lt;span class="c1">// Hidden Class H0: {}
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">dog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// Hidden Class H1: { name }
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">dog&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// Hidden Class H2: { name, age }
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>프로퍼티를 추가할 때마다 Hidden Class가 전이(transition)된다:
+H0 {} ──name──→ H1 {name} ──age──→ H2 {name, age}
+오프셋 0 오프셋 0, 1&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>같은 순서로 같은 프로퍼티를 추가하면 &lt;strong>같은 Hidden Class를 공유&lt;/strong>해요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 이 두 객체는 같은 Hidden Class H2를 공유한다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span> &lt;span class="nx">dog1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">dog1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span> &lt;span class="nx">dog2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;바둑&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">dog2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// → 둘 다 H2 → 오프셋 기반 빠른 접근 (C++과 유사한 속도)
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&amp;ldquo;클래스가 없다&amp;quot;가 아니라 &lt;strong>&amp;ldquo;엔진이 런타임에 알아서 클래스를 만든다&amp;rdquo;&lt;/strong> 에 가까운 거예요.&lt;/p>
+&lt;h3>왜 빨라질까? — Hidden Class + Inline Cache&lt;span class="hx:absolute hx:-mt-20" id="왜-빨라질까--hidden-class--inline-cache">&lt;/span>
+&lt;a href="#%ec%99%9c-%eb%b9%a8%eb%9d%bc%ec%a7%88%ea%b9%8c--hidden-class--inline-cache" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&amp;ldquo;잠깐, Hidden Class 안에서 &amp;rsquo;name이 오프셋 몇 번인지&amp;rsquo; 찾는 것도 결국 해시맵 조회 아냐?&amp;rdquo; — 맞아요. Hidden Class 자체의 내부 구조도 해시맵과 유사해요. &lt;strong>Hidden Class만으로는 특별히 빠르지 않아요.&lt;/strong>&lt;/p>
+&lt;p>진짜 빨라지는 이유는 &lt;strong>Inline Cache(IC)&lt;/strong> 에 있어요. Hidden Class는 IC가 작동할 수 있는 토대를 제공하는 거예요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[1단계] 첫 접근 — Hidden Class 조회 (해시맵과 비슷한 비용)
+obj.name → Hidden Class에서 &amp;#34;name&amp;#34; 검색 → 오프셋 0 발견
+→ IC 캐시에 저장: &amp;#34;H2일 때 name = 오프셋 0&amp;#34;
+[2단계] 반복 접근 — IC 캐시 히트 (해시맵 조회 없음!)
+obj.name → Hidden Class가 H2인지? → YES → 바로 Properties[0] 읽기
+(정수 비교 한 번으로 끝)&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>같은 구조의 객체가 반복적으로 접근되면, IC 덕분에 해시 조회를 완전히 건너뛰어요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">getName&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">obj&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 이 코드가 반복 실행된다면?
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">getName&lt;/span>&lt;span class="p">({&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">3&lt;/span> &lt;span class="p">});&lt;/span> &lt;span class="c1">// Hidden Class H2에서 name = 오프셋 0 → IC에 캐싱
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">getName&lt;/span>&lt;span class="p">({&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;바둑&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">5&lt;/span> &lt;span class="p">});&lt;/span> &lt;span class="c1">// 같은 H2 → IC 히트! → 바로 오프셋 0
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">getName&lt;/span>&lt;span class="p">({&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;초코&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="p">});&lt;/span> &lt;span class="c1">// 같은 H2 → IC 히트!
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>C의 심볼 테이블과 비교하면 역할이 명확해져요:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;/th>
+&lt;th>C&lt;/th>
+&lt;th>V8&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>매핑 정보 보관&lt;/td>
+&lt;td>심볼 테이블 (컴파일 타임)&lt;/td>
+&lt;td>Hidden Class (런타임)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>실제 빠른 접근&lt;/td>
+&lt;td>컴파일된 오프셋 (바이너리에 구워짐)&lt;/td>
+&lt;td>Inline Cache (런타임에 학습)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>비용&lt;/td>
+&lt;td>없음&lt;/td>
+&lt;td>Hidden Class + IC 유지 비용&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&amp;ldquo;그러면 해시맵에서도 결과를 캐싱하면 되는 거 아냐?&amp;ldquo;라는 의문이 들 수 있어요. 핵심은 &lt;strong>캐시 히트를 판단하는 비용&lt;/strong>이에요.&lt;/p>
+&lt;p>IC가 캐싱한 결과를 재사용하려면 &amp;ldquo;이 객체가 전에 본 것과 같은 구조인지&amp;quot;를 판단해야 해요. Hidden Class가 있으면 &lt;strong>포인터(정수) 비교 한 번&lt;/strong>으로 끝나요. Hidden Class가 없다면? &amp;ldquo;같은 구조&amp;quot;라는 개념 자체가 없어서, 객체의 모든 키를 비교해야 하고 — 그건 매번 해시맵을 조회하는 것과 다를 바 없어요.&lt;/p>
+&lt;p>Hidden Class의 진짜 역할은 검색이 아니라, &lt;strong>구조에 신분증을 부여하는 것&lt;/strong>이에요. 같은 신분증 = 같은 구조 = 같은 오프셋.&lt;/p>
+&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;p>결국 V8은 &lt;strong>C 컴파일러가 컴파일 타임에 하는 일을, 런타임에 동적으로 재현&lt;/strong>하고 있는 셈이에요.&lt;/p>
+&lt;h3>Hidden Class가 깨지는 경우&lt;span class="hx:absolute hx:-mt-20" id="hidden-class가-깨지는-경우">&lt;/span>
+&lt;a href="#hidden-class%ea%b0%80-%ea%b9%a8%ec%a7%80%eb%8a%94-%ea%b2%bd%ec%9a%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 순서가 다르면 다른 Hidden Class
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span> &lt;span class="nx">dog1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">dog1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span> &lt;span class="nx">dog2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">dog2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;바둑&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 순서가 다르다!
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// → dog1과 dog2는 다른 Hidden Class → 최적화 실패
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h3>&lt;code>delete&lt;/code>는 Hidden Class를 파괴한다&lt;span class="hx:absolute hx:-mt-20" id="delete는-hidden-class를-파괴한다">&lt;/span>
+&lt;a href="#delete%eb%8a%94-hidden-class%eb%a5%bc-%ed%8c%8c%ea%b4%b4%ed%95%9c%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>delete&lt;/code> 연산자는 메모리를 직접 해제하는 게 아니라 &lt;strong>프로퍼티와 객체의 연결을 끊는 것&lt;/strong>이에요. C++의 &lt;code>delete&lt;/code>와는 완전히 달라요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">3&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">delete&lt;/span> &lt;span class="nx">obj&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// name에 연결된 &amp;#34;멍이&amp;#34;는 GC가 나중에 회수한다
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>문제는 성능이에요. V8은 프로퍼티 추가에 대해서는 Hidden Class 전이를 캐싱하지만, &lt;strong>삭제에 대해서는 포기하고 딕셔너리 모드(해시맵)로 전환&lt;/strong>해요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>[Fast 모드 — Hidden Class] [Slow 모드 — Dictionary]
+오프셋 기반 접근 (빠름) delete 해시맵 조회 (느림)
+────────→
+한 번 빠지면 복구 안 됨&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-green-200 hx:bg-green-100 hx:text-green-900 hx:dark:border-green-200/30 hx:dark:bg-green-900/30 hx:dark:text-green-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;code>delete&lt;/code>를 사용하면 Hidden Class가 파괴되어 &lt;strong>같은 프로퍼티 접근이 수 배 느려질 수 있어요.&lt;/strong> 값을 제거하고 싶다면 &lt;code>obj.prop = undefined&lt;/code>로 Hidden Class를 유지하는 것이 성능에 유리해요. 단, &lt;code>&amp;quot;prop&amp;quot; in obj&lt;/code>의 결과가 달라지니까(&lt;code>undefined&lt;/code> 할당은 &lt;code>true&lt;/code>, &lt;code>delete&lt;/code>는 &lt;code>false&lt;/code>) 상황에 맞게 선택하세요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>직접 체험: delete의 성능 영향&lt;span class="hx:absolute hx:-mt-20" id="직접-체험-delete의-성능-영향">&lt;/span>
+&lt;a href="#%ec%a7%81%ec%a0%91-%ec%b2%b4%ed%97%98-delete%ec%9d%98-%ec%84%b1%eb%8a%a5-%ec%98%81%ed%96%a5" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>말로만 들으면 와닿지 않으니, 직접 측정해 보세요. 객체 수 슬라이더를 조절하며 차이를 확인할 수 있어요.&lt;/p>
+&lt;iframe id="demo-hidden-class" src="https://blog.girae.me/demos/ch10-hidden-class-bench/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
+&lt;script>window.addEventListener('message',function(e){if(e.data&amp;&amp;e.data.type==='demo-resize'){document.getElementById('demo-hidden-class').style.height=e.data.height+16+'px'}});&lt;/script>
+&lt;hr>
+&lt;h2>5. ES6 확장 — 단순 편의 문법이 아닌 것들&lt;span class="hx:absolute hx:-mt-20" id="5-es6-확장--단순-편의-문법이-아닌-것들">&lt;/span>
+&lt;a href="#5-es6-%ed%99%95%ec%9e%a5--%eb%8b%a8%ec%88%9c-%ed%8e%b8%ec%9d%98-%eb%ac%b8%eb%b2%95%ec%9d%b4-%ec%95%84%eb%8b%8c-%ea%b2%83%eb%93%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;h3>프로퍼티 축약 표현&lt;span class="hx:absolute hx:-mt-20" id="프로퍼티-축약-표현">&lt;/span>
+&lt;a href="#%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0-%ec%b6%95%ec%95%bd-%ed%91%9c%ed%98%84" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>변수명과 키가 같으면 생략할 수 있어요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">age&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 축약 전
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="nx">age&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 축약 후
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kr">const&lt;/span> &lt;span class="nx">dog&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">age&lt;/span> &lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h3>계산된 프로퍼티명&lt;span class="hx:absolute hx:-mt-20" id="계산된-프로퍼티명">&lt;/span>
+&lt;a href="#%ea%b3%84%ec%82%b0%eb%90%9c-%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0%eb%aa%85" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>[]&lt;/code> 안에 표현식을 넣어 키를 동적으로 결정해요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">prefix&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;dog&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">[&lt;/span>&lt;span class="nx">prefix&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s2">&amp;#34;Name&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;멍이&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="c1">// dogName: &amp;#34;멍이&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">prefix&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s2">&amp;#34;Age&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="mi">3&lt;/span> &lt;span class="c1">// dogAge: 3
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h3>메서드 축약 표현 — 단순 축약이 아니다&lt;span class="hx:absolute hx:-mt-20" id="메서드-축약-표현--단순-축약이-아니다">&lt;/span>
+&lt;a href="#%eb%a9%94%ec%84%9c%eb%93%9c-%ec%b6%95%ec%95%bd-%ed%91%9c%ed%98%84--%eb%8b%a8%ec%88%9c-%ec%b6%95%ec%95%bd%ec%9d%b4-%ec%95%84%eb%8b%88%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ES5 — 프로퍼티에 함수 할당
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">sayHi&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="s2">&amp;#34;Hi&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">},&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// ES6 — 메서드 축약 표현
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">sayHello&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="s2">&amp;#34;Hello&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>이 둘은 겉보기에만 같아요. 내부적으로 메서드 축약 표현만 가지는 특별한 것이 있어요: &lt;strong>&lt;code>[[HomeObject]]&lt;/code>&lt;/strong> 내부 슬롯이에요. 이게 있어야 &lt;code>super&lt;/code> 키워드를 쓸 수 있어요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">parent&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">greet&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="s2">&amp;#34;부모입니다&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">child&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 메서드 축약 — [[HomeObject]]가 있어서 super 사용 가능
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">greet&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kr">super&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">greet&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s2">&amp;#34; → 자식입니다&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// ✅
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">Object&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">setPrototypeOf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">child&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">parent&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">child&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">greet&lt;/span>&lt;span class="p">());&lt;/span> &lt;span class="c1">// &amp;#34;부모입니다 → 자식입니다&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">child2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="c1">// 함수 할당 — [[HomeObject]]가 없어서 super 사용 불가
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">greet&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kr">super&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">greet&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// ❌ SyntaxError!
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>&lt;/th>
+&lt;th>함수 할당&lt;/th>
+&lt;th>메서드 축약&lt;/th>
+&lt;th>화살표 함수&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>&lt;code>this&lt;/code>&lt;/td>
+&lt;td>호출한 객체&lt;/td>
+&lt;td>호출한 객체&lt;/td>
+&lt;td>외부 스코프&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>super&lt;/code>&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;td>✅&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>new&lt;/code> 가능&lt;/td>
+&lt;td>✅&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;td>❌&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>메서드 축약 표현은 &lt;strong>&amp;ldquo;진짜 메서드&amp;quot;를 위해 설계된 문법&lt;/strong> — 필요한 기능(&lt;code>super&lt;/code>)은 추가하고, 불필요한 기능(&lt;code>constructor&lt;/code>)은 뺀 최적화된 형태예요.&lt;/p>
+&lt;hr>
+&lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
+&lt;a href="#%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>주제&lt;/th>
+&lt;th>핵심&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>목판 인쇄 vs 복사기&lt;/td>
+&lt;td>클래스 기반 = 설계도(추상) → 제품(구체), 프로토타입 기반 = 실물(구체) → 복사본(구체)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>{}&lt;/code>의 두 얼굴&lt;/td>
+&lt;td>객체 리터럴 = 값(표현식, 세미콜론 O), 코드 블록 = 문(세미콜론 X)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>프로퍼티 키&lt;/td>
+&lt;td>문자열 또는 Symbol만 가능, 나머지는 암묵적 문자열 변환&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>.&lt;/code> vs &lt;code>[]&lt;/code>&lt;/td>
+&lt;td>&lt;code>.&lt;/code>은 리터럴 키, &lt;code>[]&lt;/code>는 표현식 평가 — 동적 접근은 &lt;code>[]&lt;/code>만 가능&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>V8 Hidden Class&lt;/td>
+&lt;td>구조에 신분증을 부여 → Inline Cache가 포인터 비교만으로 캐시 히트 판단&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>delete&lt;/code>의 비용&lt;/td>
+&lt;td>프로퍼티 연결만 끊음, GC가 회수. Hidden Class를 파괴해서 성능 저하&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>메서드 축약&lt;/td>
+&lt;td>&lt;code>[[HomeObject]]&lt;/code>를 가져 &lt;code>super&lt;/code> 사용 가능, 단순 축약이 아닌 별개 문법&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>JS의 객체는 자유롭지만, 엔진은 그 자유 속에서 질서를 만들어요. 프로퍼티를 같은 순서로 초기화하고, &lt;code>delete&lt;/code>를 피하는 것만으로도 V8이 만든 질서를 유지할 수 있어요. &amp;ldquo;자유롭게 쓸 수 있다&amp;quot;와 &amp;ldquo;자유롭게 써도 된다&amp;quot;는 다른 이야기니까요.&lt;/p></description></item></channel></rss>
