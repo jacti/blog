@@ -2032,9 +2032,9 @@ title="Copy code"
 &lt;/div>
 &lt;p>일반 JS 코드로는 인터닝 여부를 확인할 방법이 아예 없어요. &lt;code>===&lt;/code>, &lt;code>typeof&lt;/code>, &lt;code>Object.is&lt;/code> 뭘 써도 리터럴과 동적 문자열을 구분할 수 없습니다. 이것이 &lt;strong>as-if rule&lt;/strong>의 핵심 — 관찰할 수 없으면 다르게 구현해도 된다.&lt;/p>
 &lt;hr>
-&lt;h2>인터랙티브 실험실&lt;span class="hx:absolute hx:-mt-20" id="인터랙티브-실험실">&lt;/span>
-&lt;a href="#%ec%9d%b8%ed%84%b0%eb%9e%99%ed%8b%b0%eb%b8%8c-%ec%8b%a4%ed%97%98%ec%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>아래에서 이 글의 내용을 직접 실행하고, 퀴즈로 확인해볼 수 있어요.&lt;/p>
-&lt;iframe id="ch11-lab" src="https://blog.girae.me/demos/ch11-primitive-vs-object/" style="width:100%;border:none;border-radius:12px;min-height:2400px;margin:1rem 0;" loading="lazy" title="Ch11 인터랙티브 실험실" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
+&lt;h2>실제 실행 결과&lt;span class="hx:absolute hx:-mt-20" id="실제-실행-결과">&lt;/span>
+&lt;a href="#%ec%8b%a4%ec%a0%9c-%ec%8b%a4%ed%96%89-%ea%b2%b0%ea%b3%bc" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>위 내용을 &lt;code>node&lt;/code>에서 직접 실행한 결과입니다.&lt;/p>
+&lt;iframe id="ch11-lab" src="https://blog.girae.me/demos/ch11-primitive-vs-object/" style="width:100%;border:none;border-radius:12px;min-height:520px;margin:1rem 0;" loading="lazy" title="Ch11 실행 결과" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;script>window.addEventListener('message',function(e){if(e.data&amp;&amp;e.data.type==='demo-resize'){document.getElementById('ch11-lab').style.height=e.data.height+16+'px'}});&lt;/script>
 &lt;hr>
 &lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
