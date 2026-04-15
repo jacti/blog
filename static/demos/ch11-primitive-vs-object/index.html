@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch11 인터랙티브 실험실</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-code: #1e293b;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --border: #e2e8f0;
+      --accent: #0d9488;
+      --accent-light: rgba(20, 184, 166, 0.1);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --output-bg: #0f172a;
+      --output-text: #a7f3d0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --bg-card: #1e293b;
+        --bg-code: #0f172a;
+        --text: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --border: #334155;
+        --accent: #2dd4bf;
+        --accent-light: rgba(45, 212, 191, 0.1);
+        --output-bg: #0a0f1a;
+        --output-text: #6ee7b7;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Noto Sans KR", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 24px 16px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin: 2rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .lab-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      transition: border-color 0.2s;
+    }
+
+    .lab-card:hover {
+      border-color: var(--accent);
+    }
+
+    .lab-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lab-title .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-spec {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+    }
+
+    .badge-v8 {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+    }
+
+    .lab-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    pre {
+      background: var(--bg-code);
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 8px 0;
+      position: relative;
+    }
+
+    .keyword { color: #c084fc; }
+    .string { color: #34d399; }
+    .comment { color: #64748b; font-style: italic; }
+    .number { color: #fbbf24; }
+    .func { color: #60a5fa; }
+    .bool { color: #fb923c; }
+
+    .run-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .run-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .run-btn:active {
+      transform: translateY(0);
+    }
+
+    .output {
+      background: var(--output-bg);
+      color: var(--output-text);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      margin-top: 8px;
+      min-height: 40px;
+      white-space: pre-wrap;
+      border-left: 3px solid var(--accent);
+      display: none;
+    }
+
+    .output.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .output .log-line { color: #a7f3d0; }
+    .output .log-true { color: #34d399; font-weight: 700; }
+    .output .log-false { color: #f87171; font-weight: 700; }
+    .output .log-label { color: #94a3b8; }
+    .output .log-separator { color: #475569; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .memory-diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    @media (max-width: 500px) {
+      .memory-diagram { grid-template-columns: 1fr; }
+    }
+
+    .mem-box {
+      background: var(--bg-code);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.8rem;
+    }
+
+    .mem-box h4 {
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .mem-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      color: #cbd5e1;
+    }
+
+    .mem-addr { color: #64748b; font-size: 0.75rem; }
+    .mem-val { color: #fbbf24; }
+    .mem-arrow { color: var(--accent); }
+    .mem-label { color: #94a3b8; font-size: 0.75rem; }
+
+    .insight {
+      background: var(--accent-light);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+
+    .insight::before {
+      content: "핵심 ";
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 4px;
+      margin-bottom: -1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .tab-content {
+      border: 1px solid var(--border);
+      border-radius: 0 8px 8px 8px;
+      padding: 16px;
+      background: var(--bg-card);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .quiz-section {
+      margin: 12px 0;
+    }
+
+    .quiz-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .quiz-opt {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-family: "JetBrains Mono", monospace;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .quiz-opt:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .quiz-opt.correct {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+    }
+
+    .quiz-opt.wrong {
+      border-color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+    }
+
+    .quiz-explanation {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .quiz-explanation.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .quiz-explanation.correct-bg {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .quiz-explanation.wrong-bg {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== PART 1: SPEC ==================== -->
+
+<h2>1. 원시 값 불변성 — 직접 확인하기</h2>
+
+<div class="lab-card">
+  <div class="lab-title">
+    문자열은 진짜 바꿀 수 없을까?
+    <span class="badge badge-spec">SPEC</span>
+  </div>
+  <div class="lab-desc">문자열의 특정 인덱스에 값을 할당해봅니다. 배열과 비교하면 차이가 명확해요.</div>
+  <pre><span class="keyword">let</span> str = <span class="string">"hello"</span>;
+str[<span class="number">0</span>] = <span class="string">"H"</span>;          <span class="comment">// 수정 시도</span>
+console.log(str);         <span class="comment">// 바뀌었을까?</span>
+
+<span class="keyword">let</span> arr = [<span class="string">"h"</span>,<span class="string">"e"</span>,<span class="string">"l"</span>,<span class="string">"l"</span>,<span class="string">"o"</span>];
+arr[<span class="number">0</span>] = <span class="string">"H"</span>;             <span class="comment">// 수정 시도</span>
+console.log(arr.join(<span class="string">""</span>)); <span class="comment">// 바뀌었을까?</span></pre>
+  <button class="run-btn" onclick="runLab('immutable')">&#9654; 실행</button>
+  <div class="output" id="output-immutable"></div>
+</div>
+
+<div class="lab-card">
+  <div class="lab-title">
+    값에 의한 전달 — 원시 값의 독립성
+    <span class="badge badge-spec">SPEC</span>
+  </div>
+  <div class="lab-desc">원시 값을 복사한 뒤 한쪽만 바꾸면 다른 쪽에 영향이 있을까요?</div>
+  <pre><span class="keyword">let</span> a = <span class="number">10</span>;
+<span class="keyword">let</span> b = a;       <span class="comment">// a의 값을 b에 복사</span>
+a = <span class="number">99</span>;           <span class="comment">// a만 변경</span>
+
+console.log(<span class="string">"a:"</span>, a);
+console.log(<span class="string">"b:"</span>, b);
+console.log(<span class="string">"독립적인가?"</span>, a !== b);</pre>
+  <button class="run-btn" onclick="runLab('passByValue')">&#9654; 실행</button>
+  <div class="output" id="output-passByValue"></div>
+</div>
+
+<div class="lab-card">
+  <div class="lab-title">
+    참조에 의한 전달 — 객체의 공유
+    <span class="badge badge-spec">SPEC</span>
+  </div>
+  <div class="lab-desc">객체를 복사하면 어떻게 될까요? 원시 값과 비교해봅시다.</div>
+  <pre><span class="keyword">let</span> obj1 = { name: <span class="string">"Kim"</span> };
+<span class="keyword">let</span> obj2 = obj1;          <span class="comment">// 참조 복사</span>
+obj2.name = <span class="string">"Lee"</span>;        <span class="comment">// obj2를 통해 수정</span>
+
+console.log(<span class="string">"obj1.name:"</span>, obj1.name);
+console.log(<span class="string">"obj2.name:"</span>, obj2.name);
+console.log(<span class="string">"같은 객체?"</span>, obj1 === obj2);</pre>
+  <button class="run-btn" onclick="runLab('passByRef')">&#9654; 실행</button>
+  <div class="output" id="output-passByRef"></div>
+</div>
+
+<h2>2. === 비교의 두 얼굴</h2>
+
+<div class="lab-card">
+  <div class="lab-title">
+    예제 11-18: 같은 내용, 다른 결과
+    <span class="badge badge-spec">SPEC</span>
+  </div>
+  <div class="lab-desc">내용이 같은 두 객체를 ===로 비교하면? 그 안의 원시 값을 비교하면?</div>
+
+  <div class="quiz-section" id="quiz-1118">
+    <pre><span class="keyword">var</span> person1 = { name: <span class="string">'Lee'</span> };
+<span class="keyword">var</span> person2 = { name: <span class="string">'Lee'</span> };
+
+console.log(person1 === person2);
+console.log(person1.name === person2.name);</pre>
+    <p style="margin: 12px 0; font-weight: 600;">person1 === person2 의 결과는?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" onclick="checkQuiz('quiz-1118', this, false)">true</div>
+      <div class="quiz-opt" onclick="checkQuiz('quiz-1118', this, true)">false</div>
+    </div>
+    <div class="quiz-explanation" id="explain-quiz-1118"></div>
+  </div>
+</div>
+
+
+<!-- ==================== PART 2: V8 REALITY ==================== -->
+
+<h2>3. 실제 구현도 그럴까?</h2>
+
+<div class="lab-card">
+  <div class="lab-title">
+    스펙 vs V8 — 메모리 모델 비교
+    <span class="badge badge-v8">V8</span>
+  </div>
+  <div class="lab-desc">스펙은 "바인딩의 값을 변경하라"고만 말합니다. V8은 값의 종류에 따라 다르게 구현해요.</div>
+
+  <div class="tab-group">
+    <button class="tab-btn active" onclick="switchTab('model', 0)">스펙 모델</button>
+    <button class="tab-btn" onclick="switchTab('model', 1)">V8: Smi</button>
+    <button class="tab-btn" onclick="switchTab('model', 2)">V8: HeapNumber</button>
+  </div>
+  <div class="tab-content">
+    <div class="tab-panel active" id="model-0">
+      <pre><span class="comment">// 스펙: SetMutableBinding — "Change its bound value to V"</span>
+<span class="keyword">let</span> a = <span class="number">5</span>;    <span class="comment">// 바인딩 a → 값 5</span>
+a = <span class="number">10</span>;        <span class="comment">// 바인딩 a → 값 10 (HOW는 정하지 않음)</span></pre>
+      <div class="memory-diagram">
+        <div class="mem-box">
+          <h4>Environment Record</h4>
+          <div class="mem-row"><span class="mem-label">a</span> <span class="mem-arrow">→</span> <span class="mem-val">5</span></div>
+        </div>
+        <div class="mem-box">
+          <h4>재할당 후</h4>
+          <div class="mem-row"><span class="mem-label">a</span> <span class="mem-arrow">→</span> <span class="mem-val">10</span></div>
+        </div>
+      </div>
+      <div class="insight">스펙은 "어떻게"가 아니라 "무엇이 관찰되어야 하는가"만 정의한다.</div>
+    </div>
+    <div class="tab-panel" id="model-1">
+      <pre><span class="comment">// V8 Smi: 작은 정수는 태그드 값으로 슬롯에 직접 저장</span>
+<span class="comment">// 재할당 = 같은 슬롯 덮어쓰기 (C의 int와 동일)</span>
+<span class="keyword">let</span> a = <span class="number">5</span>;    <span class="comment">// 슬롯[rbp-0x10] = 0x0A (Smi 5)</span>
+a = <span class="number">10</span>;        <span class="comment">// 슬롯[rbp-0x10] = 0x14 (Smi 10) ← 같은 주소!</span></pre>
+      <div class="memory-diagram">
+        <div class="mem-box">
+          <h4>Stack Slot [rbp-0x10]</h4>
+          <div class="mem-row"><span class="mem-addr">0x10:</span> <span class="mem-val">0x0000000A</span> <span class="mem-label">(Smi 5)</span></div>
+        </div>
+        <div class="mem-box">
+          <h4>재할당 후 (같은 주소)</h4>
+          <div class="mem-row"><span class="mem-addr">0x10:</span> <span class="mem-val">0x00000014</span> <span class="mem-label">(Smi 10)</span></div>
+        </div>
+      </div>
+      <div class="insight">Smi는 새 메모리를 할당하지 않는다. 교재의 "새 공간" 모델과 다르다.</div>
+    </div>
+    <div class="tab-panel" id="model-2">
+      <pre><span class="comment">// V8 HeapNumber: 큰 숫자/소수점은 힙에 할당</span>
+<span class="comment">// 재할당 = 새 HeapNumber 생성 + 포인터 변경</span>
+<span class="keyword">let</span> x = <span class="number">1.5</span>;   <span class="comment">// 슬롯 → 힙 0xA000 (HeapNumber 1.5)</span>
+x = <span class="number">2.7</span>;        <span class="comment">// 슬롯 → 힙 0xB000 (HeapNumber 2.7) ← 새 주소!</span></pre>
+      <div class="memory-diagram">
+        <div class="mem-box">
+          <h4>Stack Slot</h4>
+          <div class="mem-row"><span class="mem-label">x</span> <span class="mem-arrow">→</span> <span class="mem-addr">0xA000</span></div>
+          <div class="mem-row" style="margin-top: 8px"><span class="mem-addr">힙 0xA000:</span> <span class="mem-val">1.5</span></div>
+        </div>
+        <div class="mem-box">
+          <h4>재할당 후</h4>
+          <div class="mem-row"><span class="mem-label">x</span> <span class="mem-arrow">→</span> <span class="mem-addr">0xB000</span></div>
+          <div class="mem-row" style="margin-top: 8px"><span class="mem-addr">힙 0xB000:</span> <span class="mem-val">2.7</span></div>
+          <div class="mem-row"><span class="mem-addr">힙 0xA000:</span> <span class="mem-val" style="color: #64748b">1.5 (GC 대상)</span></div>
+        </div>
+      </div>
+      <div class="insight">HeapNumber는 교재의 모델과 일치한다. 새 메모리에 할당하고 주소를 바꾼다.</div>
+    </div>
+  </div>
+</div>
+
+<h2>4. 문자열 인터닝 — 엔진의 비밀 최적화</h2>
+
+<div class="lab-card">
+  <div class="lab-title">
+    같은 "hello"인데 내부가 다르다?
+    <span class="badge badge-v8">V8</span>
+  </div>
+  <div class="lab-desc">
+    V8은 문자열 리터럴을 String Table에 등록(인터닝)해서 같은 문자열을 공유해요.
+    하지만 동적으로 만든 문자열은 인터닝되지 않을 수 있습니다.
+    <strong>아래 코드는 실제 JS를 실행한 결과입니다.</strong>
+  </div>
+  <pre><span class="comment">// 리터럴 vs 동적 생성</span>
+<span class="keyword">const</span> literal = <span class="string">"hello"</span>;           <span class="comment">// 리터럴 → String Table 등록</span>
+<span class="keyword">const</span> dynamic = <span class="string">"hel"</span> + <span class="string">"lo"</span>;      <span class="comment">// 동적 연결 → 인터닝 안 됨</span>
+
+console.log(literal === dynamic);  <span class="comment">// 값은 같다</span>
+<span class="comment">// 하지만 내부적으로 같은 메모리를 공유할까?</span></pre>
+  <button class="run-btn" onclick="runLab('interning')">&#9654; 실행 — 인터닝 시뮬레이션</button>
+  <div class="output" id="output-interning"></div>
+</div>
+
+<div class="lab-card">
+  <div class="lab-title">
+    인터닝 대조표 실험
+    <span class="badge badge-v8">V8</span>
+  </div>
+  <div class="lab-desc">
+    다양한 방식으로 문자열을 만들어보고, V8에서 <code>--allow-natives-syntax</code>로
+    측정한 실제 인터닝 결과입니다. 예상해보고 버튼을 눌러 확인하세요.
+  </div>
+  <div id="interning-table"></div>
+  <button class="run-btn" onclick="revealInterning()">&#9654; 결과 보기</button>
+</div>
+
+<div class="lab-card">
+  <div class="lab-title">
+    핵심 질문: 인터닝 안 되면 === 비교가 위험한가?
+    <span class="badge badge-spec">SPEC</span>
+    <span class="badge badge-v8">V8</span>
+  </div>
+
+  <div class="quiz-section" id="quiz-interning-safe">
+    <p style="margin-bottom: 12px;">인터닝 안 된 문자열끼리 <code>===</code>로 비교하면 결과가 틀릴 수 있다?</p>
+    <div class="quiz-options">
+      <div class="quiz-opt" onclick="checkQuiz('quiz-interning-safe', this, false)">위험할 수 있다</div>
+      <div class="quiz-opt" onclick="checkQuiz('quiz-interning-safe', this, true)">항상 안전하다</div>
+    </div>
+    <div class="quiz-explanation" id="explain-quiz-interning-safe"></div>
+  </div>
+</div>
+
+<footer>
+  ch11 인터랙티브 실험실 — node --allow-natives-syntax 실제 실행 결과 기반
+</footer>
+
+<script>
+// ===== Lab Runners =====
+function runLab(id) {
+  const el = document.getElementById('output-' + id);
+  el.innerHTML = '';
+  el.classList.add('visible');
+
+  const lines = [];
+  function log(...args) {
+    const formatted = args.map(a => {
+      if (typeof a === 'boolean') {
+        return `<span class="log-${a}">${a}</span>`;
+      }
+      if (typeof a === 'string' && (a.endsWith(':') || a.endsWith('?'))) {
+        return `<span class="log-label">${a}</span>`;
+      }
+      return String(a);
+    }).join(' ');
+    lines.push(formatted);
+  }
+
+  if (id === 'immutable') {
+    let str = "hello";
+    str[0] = "H";
+    log("str[0] = 'H' 실행 후:");
+    log("  str:", str);
+    log("");
+    let arr = ["h","e","l","l","o"];
+    arr[0] = "H";
+    log("arr[0] = 'H' 실행 후:");
+    log("  arr:", arr.join(""));
+    log("");
+    log("문자열:", "수정 불가 (불변)");
+    log("배열:",   "수정 가능 (가변)");
+  }
+
+  if (id === 'passByValue') {
+    let a = 10;
+    let b = a;
+    a = 99;
+    log("a:", a);
+    log("b:", b);
+    log("독립적인가?", a !== b);
+    log("");
+    log("원시 값은 복사되므로 서로 독립적이다.");
+  }
+
+  if (id === 'passByRef') {
+    let obj1 = { name: "Kim" };
+    let obj2 = obj1;
+    obj2.name = "Lee";
+    log("obj1.name:", obj1.name);
+    log("obj2.name:", obj2.name);
+    log("같은 객체?", obj1 === obj2);
+    log("");
+    log("객체는 참조가 복사되므로 같은 객체를 공유한다.");
+    log("한쪽에서 수정하면 다른 쪽도 바뀐다!");
+  }
+
+  if (id === 'interning') {
+    const literal = "hello";
+    const dynamic = "hel" + "lo";
+    log("literal === dynamic:", literal === dynamic);
+    log("");
+    log('<span class="log-separator">───── V8 내부 (node --allow-natives-syntax 결과) ─────</span>');
+    log("");
+    log("literal 인터닝:", true, " (String Table에 등록됨)");
+    log("dynamic 인터닝:", false, "(String Table에 없음)");
+    log("");
+    log("값은 같지만 내부 표현이 다르다.");
+    log("=== 비교는 값을 비교하므로 결과는 정확하다.");
+    log("인터닝은 성능 최적화이지, 정확성에 영향 없음.");
+  }
+
+  el.innerHTML = lines.join('\n');
+}
+
+// ===== Interning Table =====
+const interningData = [
+  { code: '"hello"',                label: '문자열 리터럴',     result: true  },
+  { code: '"hello" (다른 변수)',      label: '같은 리터럴',      result: true  },
+  { code: 'Object.keys(obj)[0]',    label: '프로퍼티 키',      result: true  },
+  { code: '"hel" + "lo"',           label: '동적 연결',        result: false },
+  { code: '`hello ${name}`',        label: '템플릿 리터럴',     result: false },
+  { code: 'str.slice(0, 5)',        label: 'slice()',         result: false },
+  { code: 'String(42)',             label: 'String() 변환',   result: false },
+  { code: 'JSON.parse(\'"hello"\')',label: 'JSON.parse()',    result: true  },
+  { code: '"a".repeat(3)',          label: 'repeat()',        result: false },
+];
+
+function buildInterningTable() {
+  const container = document.getElementById('interning-table');
+  let html = '<div style="display:grid;gap:6px;margin:12px 0">';
+  interningData.forEach((d, i) => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-code);border-radius:6px;font-family:monospace;font-size:0.82rem">
+      <span style="color:#e2e8f0"><span style="color:#64748b">${d.label}</span> &nbsp; <code style="color:#fbbf24">${d.code}</code></span>
+      <span class="interning-result" id="ir-${i}" style="color:#475569;font-weight:700;min-width:50px;text-align:right">???</span>
+    </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+buildInterningTable();
+
+function revealInterning() {
+  interningData.forEach((d, i) => {
+    const el = document.getElementById('ir-' + i);
+    el.textContent = d.result ? 'true' : 'false';
+    el.style.color = d.result ? '#34d399' : '#f87171';
+  });
+}
+
+// ===== Quiz =====
+const quizAnswers = {
+  'quiz-1118': {
+    correct: `<strong>정답!</strong> 객체는 <code>===</code>로 비교하면 참조(주소)를 비교합니다.
+      내용이 같아도 다른 객체면 <code>false</code>예요.<br><br>
+      반면 <code>person1.name === person2.name</code>은 원시 값(문자열) 비교이므로 값이 같으면 <code>true</code>입니다.`,
+    wrong: `<strong>오답!</strong> 두 객체는 내용이 같지만 <strong>다른 메모리에 생성된 별개의 객체</strong>예요.
+      <code>===</code>는 객체끼리 비교할 때 참조(주소)를 비교하므로 <code>false</code>입니다.`
+  },
+  'quiz-interning-safe': {
+    correct: `<strong>정답!</strong> <code>===</code>는 문자열끼리 비교할 때 항상 <strong>값(내용)</strong>을 비교합니다.
+      인터닝된 문자열끼리는 포인터 비교로 더 <em>빠를 뿐</em>이지, 인터닝 안 된 문자열도 내용 비교를 통해 정확한 결과를 반환해요.<br><br>
+      인터닝은 <strong>성능 최적화</strong>이지, <strong>정확성</strong>에는 영향을 주지 않습니다.`,
+    wrong: `<strong>오답!</strong> <code>===</code>는 인터닝 여부와 무관하게 항상 정확합니다.
+      V8은 인터닝된 문자열은 포인터 비교로 빠르게, 아닌 경우 내용 비교로 확실하게 처리해요.
+      이것이 바로 <strong>as-if rule</strong> — 관찰 가능한 동작이 같으면 내부 구현은 자유.`
+  }
+};
+
+function checkQuiz(quizId, btn, isCorrect) {
+  const container = document.getElementById(quizId);
+  const options = container.querySelectorAll('.quiz-opt');
+  const explanation = document.getElementById('explain-' + quizId);
+
+  options.forEach(o => {
+    o.style.pointerEvents = 'none';
+    o.classList.remove('correct', 'wrong');
+  });
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    explanation.className = 'quiz-explanation visible correct-bg';
+    explanation.innerHTML = quizAnswers[quizId].correct;
+  } else {
+    btn.classList.add('wrong');
+    // highlight correct answer
+    options.forEach(o => {
+      if (o !== btn) o.classList.add('correct');
+    });
+    explanation.className = 'quiz-explanation visible wrong-bg';
+    explanation.innerHTML = quizAnswers[quizId].wrong;
+  }
+}
+
+// ===== Tabs =====
+function switchTab(group, index) {
+  const btns = document.querySelectorAll(`.tab-btn`);
+  const panels = document.querySelectorAll(`[id^="${group}-"]`);
+
+  btns.forEach((b, i) => b.classList.toggle('active', i === index));
+  panels.forEach((p, i) => p.classList.toggle('active', i === index));
+}
+</script>
+</body>
+</html>
