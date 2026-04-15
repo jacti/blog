@@ -3,145 +3,243 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ch11 — 실제 실행 결과</title>
+  <title>Ch11 — 라이브 실험</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --bg-code: #0a0f1a;
-      --text: #cbd5e1;
-      --muted: #475569;
-      --accent: #2dd4bf;
-      --green: #34d399;
-      --red: #f87171;
-      --yellow: #fbbf24;
-      --purple: #c084fc;
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: #0d9488; --green: #059669; --red: #dc2626;
     }
-    @media (prefers-color-scheme: light) {
+    @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #1e293b;
-        --bg-code: #0f172a;
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent: #2dd4bf; --green: #34d399; --red: #f87171;
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 13px;
-      line-height: 1.6;
-      padding: 0;
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 16px;
     }
-    .terminal {
-      background: var(--bg-code);
-      border-radius: 8px;
+    .repl {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       overflow: hidden;
-      margin: 12px;
+      margin-bottom: 20px;
     }
-    .terminal-bar {
-      background: #1e293b;
+    .repl-header {
+      display: flex; justify-content: space-between; align-items: center;
       padding: 8px 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid #334155;
+      background: var(--bg-code);
+      border-bottom: 1px solid var(--border);
     }
-    .terminal-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
+    .repl-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: var(--muted);
     }
-    .dot-red { background: #ef4444; }
-    .dot-yellow { background: #eab308; }
-    .dot-green { background: #22c55e; }
-    .terminal-title {
-      color: var(--muted);
-      font-size: 11px;
-      margin-left: 8px;
+    .repl-run {
+      padding: 4px 14px; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
     }
-    .terminal-body {
-      padding: 16px;
+    .repl-run:hover { opacity: 0.85; }
+    .repl-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 120px;
+    }
+    @media (max-width: 540px) {
+      .repl-body { grid-template-columns: 1fr; }
+    }
+    .repl-code {
+      padding: 0;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    @media (max-width: 540px) {
+      .repl-code { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    .repl-code textarea {
+      width: 100%; height: 100%; min-height: 140px;
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: transparent; color: var(--text);
+      border: none; outline: none; resize: vertical;
+      tab-size: 2;
+    }
+    .repl-output {
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: var(--bg-code); color: #a7f3d0;
       overflow-x: auto;
+      white-space: pre-wrap;
+      min-height: 140px;
     }
-    .prompt { color: var(--accent); }
-    .prompt::before { content: "$ "; }
-    .code-line { color: var(--text); }
-    .output-line { color: var(--green); }
-    .error-line { color: var(--red); }
-    .comment-line { color: var(--muted); font-style: italic; }
-    .kw { color: var(--purple); }
-    .str { color: var(--green); }
-    .num { color: var(--yellow); }
-    .val-true { color: var(--green); font-weight: 700; }
-    .val-false { color: var(--red); font-weight: 700; }
-    .blank { height: 8px; }
-    .section-label {
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      padding: 20px 12px 6px;
+    .repl-output .out-log { color: #a7f3d0; }
+    .repl-output .out-err { color: #f87171; }
+    .repl-output .out-true { color: #34d399; font-weight: 700; }
+    .repl-output .out-false { color: #f87171; font-weight: 700; }
+    .repl-output .out-undef { color: #64748b; font-style: italic; }
+    .repl-output .out-num { color: #fbbf24; }
+    .repl-output .out-str { color: #34d399; }
+    .repl-output .out-null { color: #64748b; font-weight: 700; }
+
+    .node-output {
+      background: var(--bg-code);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
     }
-    .note {
-      color: var(--muted);
-      font-size: 11px;
-      padding: 4px 16px 12px;
-      line-height: 1.5;
+    .node-header {
+      padding: 8px 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: var(--muted);
+      border-bottom: 1px solid #334155;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .node-header .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .node-body {
+      padding: 14px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px; line-height: 1.7;
+      color: #cbd5e1;
+    }
+    .node-body .v-true { color: #34d399; font-weight: 700; }
+    .node-body .v-false { color: #f87171; font-weight: 700; }
+    .node-body .dim { color: #475569; }
+    .label {
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      margin: 20px 0 6px; letter-spacing: 0.03em;
     }
   </style>
 </head>
 <body>
 
-<div class="section-label">실험 1 — 불변성은 엔진이 실제로 차단하는가</div>
-
-<div class="terminal">
-  <div class="terminal-bar">
-    <div class="terminal-dot dot-red"></div>
-    <div class="terminal-dot dot-yellow"></div>
-    <div class="terminal-dot dot-green"></div>
-    <span class="terminal-title">node examples/ch11/03-immutability-proof.js</span>
+<div class="label">실험 1 — 불변성은 진짜 차단되는가 (코드를 수정해서 실행해보세요)</div>
+<div class="repl" id="repl-1">
+  <div class="repl-header">
+    <span class="repl-title">코드</span>
+    <button class="repl-run" onclick="run('repl-1')">Run</button>
   </div>
-  <div class="terminal-body">
-<span class="prompt">node examples/ch11/03-immutability-proof.js</span>
+  <div class="repl-body">
+    <div class="repl-code">
+      <textarea>"use strict";
 
-<span class="comment-line"># "use strict" 모드에서 문자열 수정 시도</span>
-<span class="error-line">str[0] = 'H'  → TypeError: Cannot assign to read only property '0' of string 'hello'</span>
-<span class="output-line">arr[0] = 'H'  → Hello (성공)</span>
-  </div>
-</div>
-<div class="note">문자열의 각 인덱스는 read-only property다. strict mode에서는 TypeError, 아니면 조용히 무시된다.<br>배열은 객체이므로 자유롭게 수정된다. 이것이 "원시 값은 불변"의 실체.</div>
+const str = "hello";
+try {
+  str[0] = "H";
+  console.log("문자열 수정:", str);
+} catch (e) {
+  console.log("문자열:", e.message);
+}
 
-<div class="section-label">실험 2 — 같은 "hello"인데 내부가 다르다</div>
-
-<div class="terminal">
-  <div class="terminal-bar">
-    <div class="terminal-dot dot-red"></div>
-    <div class="terminal-dot dot-yellow"></div>
-    <div class="terminal-dot dot-green"></div>
-    <span class="terminal-title">node --allow-natives-syntax examples/ch11/02-interning-compact.js</span>
-  </div>
-  <div class="terminal-body">
-<span class="prompt">node --allow-natives-syntax examples/ch11/02-interning-compact.js</span>
-
-<span class="comment-line">=== 문자열 인터닝 실험 ===</span>
-
-<span class="output-line">리터럴 'hello'       : <span class="val-true">true</span></span>
-<span class="output-line">같은 리터럴 (변수2)   : <span class="val-true">true</span></span>
-<span class="output-line">'hel' + 'lo'         : <span class="val-false">false</span></span>
-<span class="output-line">'hello world'.slice  : <span class="val-false">false</span></span>
-<span class="output-line">JSON.parse           : <span class="val-true">true</span></span>
-
-<span class="comment-line">=== 그런데 === 비교는? ===</span>
-
-<span class="output-line">literal1 === dynamic : <span class="val-true">true</span></span>
-<span class="output-line">literal1 === sliced  : <span class="val-true">true</span></span>
-<span class="output-line">literal1 === parsed  : <span class="val-true">true</span></span>
+const arr = ["h","e","l","l","o"];
+arr[0] = "H";
+console.log("배열 수정:", arr.join(""));</textarea>
+    </div>
+    <div class="repl-output"></div>
   </div>
 </div>
-<div class="note">
-  %IsInternalizedString()은 V8 내부 함수로, 일반 JS에서는 호출할 수 없다.<br>
-  리터럴은 String Table에 등록(인터닝)되지만, 동적 생성 문자열은 안 된다.<br>
-  그럼에도 === 비교는 항상 정확하다 — 인터닝은 성능 최적화이지, 정확성에 영향 없음.
+
+<div class="label">실험 2 — === 비교: 같은 내용, 다른 결과 (코드를 수정해서 실행해보세요)</div>
+<div class="repl" id="repl-2">
+  <div class="repl-header">
+    <span class="repl-title">코드</span>
+    <button class="repl-run" onclick="run('repl-2')">Run</button>
+  </div>
+  <div class="repl-body">
+    <div class="repl-code">
+      <textarea>const p1 = { name: "Lee" };
+const p2 = { name: "Lee" };
+
+console.log("p1 === p2      :", p1 === p2);
+console.log("p1.name===p2.name:", p1.name === p2.name);
+
+// 왜?
+console.log("");
+console.log("typeof p1      :", typeof p1);
+console.log("typeof p1.name :", typeof p1.name);</textarea>
+    </div>
+    <div class="repl-output"></div>
+  </div>
 </div>
 
+<div class="label">실험 3 — 문자열 인터닝 (node --allow-natives-syntax 실행 결과)</div>
+<div class="node-output">
+  <div class="node-header">
+    <div class="dot" style="background:#ef4444"></div>
+    <div class="dot" style="background:#eab308"></div>
+    <div class="dot" style="background:#22c55e"></div>
+    node --allow-natives-syntax examples/ch11/02-interning-compact.js
+  </div>
+  <div class="node-body"><span class="dim">=== 문자열 인터닝 실험 ===</span>
+
+리터럴 'hello'       : <span class="v-true">true</span>
+같은 리터럴 (변수2)   : <span class="v-true">true</span>
+'hel' + 'lo'         : <span class="v-false">false</span>
+'hello world'.slice  : <span class="v-false">false</span>
+JSON.parse           : <span class="v-true">true</span>
+
+<span class="dim">=== 그런데 === 비교는? ===</span>
+
+literal1 === dynamic : <span class="v-true">true</span>
+literal1 === sliced  : <span class="v-true">true</span>
+literal1 === parsed  : <span class="v-true">true</span></div>
+</div>
+<div style="font-size:12px;color:var(--muted);padding:0 4px 16px">
+  %IsInternalizedString()은 V8 내부 함수라 브라우저에서 실행할 수 없습니다.<br>
+  위 결과는 Node.js에서 실제 실행한 출력입니다. 인터닝 여부가 달라도 === 비교는 항상 정확합니다.
+</div>
+
+<script>
+function formatValue(v) {
+  if (v === undefined) return '<span class="out-undef">undefined</span>';
+  if (v === null) return '<span class="out-null">null</span>';
+  if (typeof v === 'boolean') return '<span class="out-' + v + '">' + v + '</span>';
+  if (typeof v === 'number') return '<span class="out-num">' + v + '</span>';
+  if (typeof v === 'string') return '<span class="out-str">"' + v.replace(/</g,'&lt;') + '"</span>';
+  if (Array.isArray(v)) return '[' + v.map(formatValue).join(', ') + ']';
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
+
+function run(id) {
+  const repl = document.getElementById(id);
+  const code = repl.querySelector('textarea').value;
+  const outputEl = repl.querySelector('.repl-output');
+  const lines = [];
+
+  const origLog = console.log;
+  console.log = function(...args) {
+    const formatted = args.map(a => {
+      if (typeof a === 'string') return a.replace(/</g, '&lt;');
+      return formatValue(a);
+    }).join(' ');
+    lines.push('<span class="out-log">' + formatted + '</span>');
+  };
+
+  try {
+    const fn = new Function(code);
+    fn();
+  } catch (e) {
+    lines.push('<span class="out-err">' + e.constructor.name + ': ' + e.message.replace(/</g,'&lt;') + '</span>');
+  }
+
+  console.log = origLog;
+  outputEl.innerHTML = lines.join('\n') || '<span class="out-undef">undefined</span>';
+}
+
+// 페이지 로드 시 자동 실행
+document.addEventListener('DOMContentLoaded', () => {
+  run('repl-1');
+  run('repl-2');
+});
+</script>
 </body>
 </html>
