@@ -212,11 +212,11 @@ literal === dynamic                      // true — 하지만 비교는 정확!
 
 ---
 
-## 인터랙티브 실험실
+## 실제 실행 결과
 
-아래에서 이 글의 내용을 직접 실행하고, 퀴즈로 확인해볼 수 있어요.
+위 내용을 `node`에서 직접 실행한 결과입니다.
 
-<iframe id="ch11-lab" src="/demos/ch11-primitive-vs-object/" style="width:100%;border:none;border-radius:12px;min-height:2400px;margin:1rem 0;" loading="lazy" title="Ch11 인터랙티브 실험실" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'"></iframe>
+<iframe id="ch11-lab" src="/demos/ch11-primitive-vs-object/" style="width:100%;border:none;border-radius:12px;min-height:520px;margin:1rem 0;" loading="lazy" title="Ch11 실행 결과" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'"></iframe>
 
 <script>window.addEventListener('message',function(e){if(e.data&&e.data.type==='demo-resize'){document.getElementById('ch11-lab').style.height=e.data.height+16+'px'}});</script>
 
