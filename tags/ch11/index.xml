@@ -1,0 +1,376 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Ch11</title><link>https://blog.girae.me/tags/ch11/</link><description>Recent content in Ch11 on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Wed, 15 Apr 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/ch11/index.xml" rel="self" type="application/rss+xml"/><item><title>ch11. 원시 값과 객체의 비교 — 스펙이 그린 세계와 V8이 만든 현실</title><link>https://blog.girae.me/learning-log/ch11-primitive-vs-object/</link><pubDate>Wed, 15 Apr 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch11-primitive-vs-object/</guid><description>
+&lt;p>JavaScript에는 두 종류의 값이 있어요. &lt;strong>원시 값&lt;/strong>(숫자, 문자열, 불리언, null, undefined, Symbol, BigInt)과 &lt;strong>객체&lt;/strong>. 이 둘은 생성, 저장, 복사, 비교에서 전혀 다르게 동작합니다.&lt;/p>
+&lt;p>이 글은 두 파트로 나뉘어요:&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>스펙이 정한 규칙&lt;/strong> — JS가 &amp;ldquo;이렇게 동작해야 한다&amp;quot;고 약속한 것&lt;/li>
+&lt;li>&lt;strong>실제 구현도 그럴까?&lt;/strong> — V8이 성능을 위해 어떻게 다르게 구현했는지&lt;/li>
+&lt;/ol>
+&lt;hr>
+&lt;h2>Part 1. 스펙이 정한 규칙&lt;span class="hx:absolute hx:-mt-20" id="part-1-스펙이-정한-규칙">&lt;/span>
+&lt;a href="#part-1-%ec%8a%a4%ed%8e%99%ec%9d%b4-%ec%a0%95%ed%95%9c-%ea%b7%9c%ec%b9%99" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;h3>원시 값은 불변(immutable)이다&lt;span class="hx:absolute hx:-mt-20" id="원시-값은-불변immutable이다">&lt;/span>
+&lt;a href="#%ec%9b%90%ec%8b%9c-%ea%b0%92%ec%9d%80-%eb%b6%88%eb%b3%80immutable%ec%9d%b4%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>원시 값은 한번 만들어지면 &lt;strong>그 값 자체를 수정할 수 없어요.&lt;/strong> &amp;ldquo;변수에 다른 값을 넣는 것&amp;quot;과 &amp;ldquo;값 자체를 바꾸는 것&amp;quot;은 다릅니다.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">str&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;hello&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">str&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;H&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 값 자체를 바꾸려는 시도
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">str&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// &amp;#34;hello&amp;#34; — 바뀌지 않는다!
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">arr&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;h&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="s2">&amp;#34;e&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="s2">&amp;#34;l&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="s2">&amp;#34;l&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="s2">&amp;#34;o&amp;#34;&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">arr&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;H&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 배열은 객체니까 가변
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">arr&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">join&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>&lt;span class="p">));&lt;/span> &lt;span class="c1">// &amp;#34;Hello&amp;#34; — 바뀐다!
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>문자열의 개별 문자를 바꾸려고 해도 무시돼요 (strict mode에서는 TypeError). 반면 배열은 객체니까 자유롭게 수정됩니다.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&amp;ldquo;변수에 다른 값을 넣는 것&amp;quot;과 &amp;ldquo;값 자체를 바꾸는 것&amp;quot;을 혼동하지 마세요. &lt;code>str = &amp;quot;world&amp;quot;&lt;/code>는 변수 재할당(가능), &lt;code>str[0] = &amp;quot;H&amp;quot;&lt;/code>는 값 변이(불가).&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>변수 재할당 — &amp;ldquo;값이 바뀌는 게 아니라 바인딩이 바뀐다&amp;rdquo;&lt;span class="hx:absolute hx:-mt-20" id="변수-재할당--값이-바뀌는-게-아니라-바인딩이-바뀐다">&lt;/span>
+&lt;a href="#%eb%b3%80%ec%88%98-%ec%9e%ac%ed%95%a0%eb%8b%b9--%ea%b0%92%ec%9d%b4-%eb%b0%94%eb%80%8c%eb%8a%94-%ea%b2%8c-%ec%95%84%eb%8b%88%eb%9d%bc-%eb%b0%94%ec%9d%b8%eb%94%a9%ec%9d%b4-%eb%b0%94%eb%80%90%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">a&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">5&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 바인딩 a → 값 5
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">a&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 바인딩 a → 값 10 (5가 10으로 변한 게 아님!)
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>스펙에서 이 동작은 &lt;strong>SetMutableBinding&lt;/strong>이라는 연산으로 정의돼요:&lt;/p>
+&lt;blockquote>
+&lt;p>&amp;ldquo;Change its bound value to V&amp;rdquo; — 바인딩의 값을 V로 변경하라&lt;/p>
+&lt;/blockquote>
+&lt;p>이 표현이 중요해요. &amp;ldquo;새 메모리를 할당하라&amp;quot;도 아니고, &amp;ldquo;기존 메모리를 덮어써라&amp;quot;도 아닙니다. **어떻게(HOW)**는 정하지 않고 **무엇이 관찰되어야 하는가(WHAT)**만 정의한 거예요.&lt;/p>
+&lt;h3>값에 의한 전달 — 원시 값은 복사된다&lt;span class="hx:absolute hx:-mt-20" id="값에-의한-전달--원시-값은-복사된다">&lt;/span>
+&lt;a href="#%ea%b0%92%ec%97%90-%ec%9d%98%ed%95%9c-%ec%a0%84%eb%8b%ac--%ec%9b%90%ec%8b%9c-%ea%b0%92%ec%9d%80-%eb%b3%b5%ec%82%ac%eb%90%9c%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">a&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">b&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">a&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// a의 값을 b에 복사
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">a&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">99&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">a&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 99
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">b&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 10 — a를 바꿔도 b는 그대로!
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>원시 값을 다른 변수에 할당하면 &lt;strong>값이 복사&lt;/strong>돼요. 이후 두 변수는 완전히 독립적입니다. 한쪽을 바꿔도 다른 쪽에 영향이 없어요.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">Python에서는 이걸 **COW(Copy-on-Write)**와 비슷한 패턴으로 구현해요 — &lt;code>b = a&lt;/code> 시점에 같은 정수 객체를 공유하다가, &lt;code>a = 99&lt;/code>로 수정하면 그때 &lt;code>a&lt;/code>만 새 객체를 가리키는 방식. JS 스펙은 이런 내부 메커니즘을 정하지 않고, &amp;ldquo;결과적으로 독립적이어야 한다&amp;quot;는 것만 보장합니다.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>참조에 의한 전달 — 객체는 공유된다&lt;span class="hx:absolute hx:-mt-20" id="참조에-의한-전달--객체는-공유된다">&lt;/span>
+&lt;a href="#%ec%b0%b8%ec%a1%b0%ec%97%90-%ec%9d%98%ed%95%9c-%ec%a0%84%eb%8b%ac--%ea%b0%9d%ec%b2%b4%eb%8a%94-%ea%b3%b5%ec%9c%a0%eb%90%9c%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">obj1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s2">&amp;#34;Kim&amp;#34;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">obj2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">obj1&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 참조 복사
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;Lee&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// obj2를 통해 수정
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">obj1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// &amp;#34;Lee&amp;#34; — obj1도 바뀌었다!
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">obj1&lt;/span> &lt;span class="o">===&lt;/span> &lt;span class="nx">obj2&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// true — 같은 객체
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>객체를 변수에 할당하면 **참조(메모리 주소)**가 복사돼요. 두 변수가 같은 객체를 가리키기 때문에 한쪽에서 수정하면 다른 쪽에도 반영됩니다.&lt;/p>
+&lt;h3>=== 비교의 두 얼굴&lt;span class="hx:absolute hx:-mt-20" id="-비교의-두-얼굴">&lt;/span>
+&lt;a href="#-%eb%b9%84%ea%b5%90%ec%9d%98-%eb%91%90-%ec%96%bc%ea%b5%b4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>이게 11장의 핵심이에요. &lt;code>===&lt;/code>는 비교 대상이 원시 값이냐 객체냐에 따라 &lt;strong>완전히 다르게&lt;/strong> 동작합니다.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">person1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s1">&amp;#39;Lee&amp;#39;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">person2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">name&lt;/span>&lt;span class="o">:&lt;/span> &lt;span class="s1">&amp;#39;Lee&amp;#39;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">person1&lt;/span> &lt;span class="o">===&lt;/span> &lt;span class="nx">person2&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// false — 다른 객체
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">person1&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span> &lt;span class="o">===&lt;/span> &lt;span class="nx">person2&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">name&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// true — 같은 값
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>비교 대상&lt;/th>
+&lt;th>&lt;code>===&lt;/code> 가 보는 것&lt;/th>
+&lt;th>예시&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>원시 값&lt;/td>
+&lt;td>&lt;strong>값&lt;/strong> 자체&lt;/td>
+&lt;td>&lt;code>&amp;quot;Lee&amp;quot; === &amp;quot;Lee&amp;quot;&lt;/code> → &lt;code>true&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>객체&lt;/td>
+&lt;td>&lt;strong>참조&lt;/strong>(주소)&lt;/td>
+&lt;td>&lt;code>{} === {}&lt;/code> → &lt;code>false&lt;/code>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>내용이 아무리 같아도, 서로 다른 객체면 &lt;code>false&lt;/code>예요.&lt;/p>
+&lt;h3>프로퍼티 키가 문자열/심볼만 되는 이유&lt;span class="hx:absolute hx:-mt-20" id="프로퍼티-키가-문자열심볼만-되는-이유">&lt;/span>
+&lt;a href="#%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0-%ed%82%a4%ea%b0%80-%eb%ac%b8%ec%9e%90%ec%97%b4%ec%8b%ac%eb%b3%bc%eb%a7%8c-%eb%90%98%eb%8a%94-%ec%9d%b4%ec%9c%a0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">obj&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;a&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;1&amp;#34;&lt;/span>&lt;span class="p">];&lt;/span> &lt;span class="c1">// &amp;#34;a&amp;#34; — 숫자 1이 문자열 &amp;#34;1&amp;#34;로 변환됨
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>객체 프로퍼티의 키는 문자열과 심볼만 허용돼요. 이유는:&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>불변성&lt;/strong> — 문자열/심볼은 불변이라 해시 키로 안전 (해시값이 바뀔 일 없음)&lt;/li>
+&lt;li>&lt;strong>동등성의 명확함&lt;/strong> — 숫자를 직접 허용하면 &lt;code>0&lt;/code>과 &lt;code>-0&lt;/code>, &lt;code>NaN&lt;/code>과 &lt;code>NaN&lt;/code>, &lt;code>1&lt;/code>과 &lt;code>1.0&lt;/code> 같은 모호한 케이스가 생겨요&lt;/li>
+&lt;/ol>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 가상의 세계: 숫자가 직접 키가 된다면
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// vs obj[-0] → 0 === -0 은 true인데?
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">obj&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="kc">NaN&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">// vs obj[NaN] → NaN === NaN 은 false인데?
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>문자열로 변환하면 이런 모호함이 전부 사라져요. &lt;code>Map&lt;/code>은 이 문제를 &lt;strong>SameValueZero&lt;/strong> 알고리즘으로 해결해서 숫자도 직접 키로 쓸 수 있습니다.&lt;/p>
+&lt;hr>
+&lt;h2>Part 2. 실제 구현도 그럴까?&lt;span class="hx:absolute hx:-mt-20" id="part-2-실제-구현도-그럴까">&lt;/span>
+&lt;a href="#part-2-%ec%8b%a4%ec%a0%9c-%ea%b5%ac%ed%98%84%eb%8f%84-%ea%b7%b8%eb%9f%b4%ea%b9%8c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기까지가 스펙이 정한 &amp;ldquo;관찰 가능한 동작&amp;quot;이에요. 그런데 의문이 들었어요:&lt;/p>
+&lt;blockquote>
+&lt;p>&amp;ldquo;변수를 재할당하면 정말 새 메모리를 할당하고 주소를 바꿔?&amp;rdquo;
+&amp;ldquo;매번 그러면 느리지 않아?&amp;rdquo;&lt;/p>
+&lt;/blockquote>
+&lt;p>V8의 실제 구현을 파보니, &lt;strong>스펙과 같은 결과를 내면서도 내부적으로는 꽤 다르게 동작&lt;/strong>하고 있었어요.&lt;/p>
+&lt;h3>as-if rule — 관찰만 같으면 된다&lt;span class="hx:absolute hx:-mt-20" id="as-if-rule--관찰만-같으면-된다">&lt;/span>
+&lt;a href="#as-if-rule--%ea%b4%80%ec%b0%b0%eb%a7%8c-%ea%b0%99%ec%9c%bc%eb%a9%b4-%eb%90%9c%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>ECMAScript 스펙에는 암묵적인 원칙이 있어요:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>관찰 가능한 동작(observable behavior)이 스펙과 같으면, 내부 구현은 자유다.&lt;/strong>&lt;/p>
+&lt;/blockquote>
+&lt;p>JS에는 변수의 메모리 주소를 관찰할 방법이 없어요. C의 &lt;code>&amp;amp;a&lt;/code> 같은 연산자가 없습니다. 그래서 &amp;ldquo;새 메모리를 할당했느냐, 같은 메모리를 덮어썼느냐&amp;quot;를 코드로 구분할 수 없어요. V8은 이 자유를 최대한 활용합니다.&lt;/p>
+&lt;h3>V8의 숫자 저장: Smi vs HeapNumber&lt;span class="hx:absolute hx:-mt-20" id="v8의-숫자-저장-smi-vs-heapnumber">&lt;/span>
+&lt;a href="#v8%ec%9d%98-%ec%88%ab%ec%9e%90-%ec%a0%80%ec%9e%a5-smi-vs-heapnumber" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>V8은 모든 값을 포인터 크기(64비트)의 &lt;strong>태그드 값&lt;/strong>으로 표현해요. 최하위 비트로 종류를 구분합니다:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>Smi (Small Integer): [63비트 정수값][0] ← 최하위 비트 0
+HeapObject: [63비트 힙 주소][1] ← 최하위 비트 1&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;strong>Smi (작은 정수)&lt;/strong>: 31비트 범위의 정수는 슬롯에 직접 인코딩돼요. 재할당하면 &lt;strong>같은 슬롯을 덮어씁니다.&lt;/strong> 새 메모리 할당이 없어요. C의 &lt;code>int x = 5; x = 10;&lt;/code>과 동일합니다.&lt;/p>
+&lt;p>&lt;strong>HeapNumber (큰 숫자, 소수점)&lt;/strong>: 별도의 힙 객체로 할당돼요. 재할당하면 &lt;strong>새 HeapNumber를 생성하고 포인터를 변경&lt;/strong>합니다. 교재의 &amp;ldquo;새 메모리 공간&amp;rdquo; 모델과 일치해요.&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>값 종류&lt;/th>
+&lt;th>V8 동작&lt;/th>
+&lt;th>교재 모델과 일치?&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>Smi (&lt;code>5&lt;/code>, &lt;code>10&lt;/code>, &lt;code>-3&lt;/code>)&lt;/td>
+&lt;td>슬롯 덮어쓰기&lt;/td>
+&lt;td>불일치 (더 빠름)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>HeapNumber (&lt;code>1.5&lt;/code>, &lt;code>2.7&lt;/code>)&lt;/td>
+&lt;td>새 객체 할당 + 포인터 변경&lt;/td>
+&lt;td>&lt;strong>일치&lt;/strong>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>문자열&lt;/td>
+&lt;td>새 객체 할당 + 포인터 변경&lt;/td>
+&lt;td>&lt;strong>일치&lt;/strong>&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">V8은 2025년에 &lt;a href="https://v8.dev/blog/mutable-heap-number"target="_blank" rel="noopener">MutableHeapNumber 최적화&lt;/a>를 도입해서 HeapNumber도 제자리 수정이 가능해졌어요. 즉 &lt;strong>최근까지 교재의 모델이 실제 동작&lt;/strong>이었습니다.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>V8의 문자열 인터닝 — 불변성이 만든 최적화&lt;span class="hx:absolute hx:-mt-20" id="v8의-문자열-인터닝--불변성이-만든-최적화">&lt;/span>
+&lt;a href="#v8%ec%9d%98-%eb%ac%b8%ec%9e%90%ec%97%b4-%ec%9d%b8%ed%84%b0%eb%8b%9d--%eb%b6%88%eb%b3%80%ec%84%b1%ec%9d%b4-%eb%a7%8c%eb%93%a0-%ec%b5%9c%ec%a0%81%ed%99%94" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>문자열이 불변이기 때문에 V8은 &lt;strong>같은 내용의 문자열을 하나만 만들어서 공유&lt;/strong>할 수 있어요. 이걸 **인터닝(interning)**이라고 합니다.&lt;/p>
+&lt;p>V8 내부에는 &lt;strong>String Table&lt;/strong>이라는 전역 해시 테이블이 있어요:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>문자열 리터럴 &amp;#39;Lee&amp;#39;를 만남
+→ 해시 계산 (예: 0x3F2A)
+→ String Table에서 해시로 탐색
+→ 없으면: 새 문자열 생성 &amp;#43; 테이블에 등록
+→ 있으면: 기존 문자열 재사용&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>그런데 &lt;strong>모든 문자열이 인터닝되는 건 아니에요.&lt;/strong> V8의 &lt;code>--allow-natives-syntax&lt;/code> 플래그로 직접 확인해봤습니다:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// node --allow-natives-syntax examples/ch11/01-string-interning.js
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">literal&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;hello&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">%&lt;/span>&lt;span class="nx">IsInternalizedString&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">literal&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">// true — 리터럴은 인터닝
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">dynamic&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;hel&amp;#34;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="s2">&amp;#34;lo&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">%&lt;/span>&lt;span class="nx">IsInternalizedString&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">dynamic&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1">// false — 동적 생성은 안 됨
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">literal&lt;/span> &lt;span class="o">===&lt;/span> &lt;span class="nx">dynamic&lt;/span> &lt;span class="c1">// true — 하지만 비교는 정확!
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>전체 실험 결과:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>생성 방식&lt;/th>
+&lt;th>인터닝 여부&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>문자열 리터럴 &lt;code>&amp;quot;hello&amp;quot;&lt;/code>&lt;/td>
+&lt;td>&lt;strong>됨&lt;/strong>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>같은 리터럴 (다른 변수)&lt;/td>
+&lt;td>&lt;strong>됨&lt;/strong>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>프로퍼티 키&lt;/td>
+&lt;td>&lt;strong>됨&lt;/strong>&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>&amp;quot;hel&amp;quot; + &amp;quot;lo&amp;quot;&lt;/code> (동적 연결)&lt;/td>
+&lt;td>안 됨&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>템플릿 리터럴 &lt;code>`hello ${name}`&lt;/code>&lt;/td>
+&lt;td>안 됨&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>slice(0, 5)&lt;/code>&lt;/td>
+&lt;td>안 됨&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>String(42)&lt;/code>&lt;/td>
+&lt;td>안 됨&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>JSON.parse('&amp;quot;hello&amp;quot;')&lt;/code>&lt;/td>
+&lt;td>&lt;strong>됨&lt;/strong> (의외!)&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>&amp;quot;a&amp;quot;.repeat(3)&lt;/code>&lt;/td>
+&lt;td>안 됨&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>리터럴과 프로퍼티 키는 컴파일 타임에 확정되니까 인터닝 대상이에요. 동적으로 만든 문자열은 매번 인터닝하면 String Table이 비대해지니까 엔진이 선택적으로 처리합니다.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-green-200 hx:bg-green-100 hx:text-green-900 hx:dark:border-green-200/30 hx:dark:bg-green-900/30 hx:dark:text-green-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;strong>인터닝 안 되면 &lt;code>===&lt;/code> 비교가 위험하다?&lt;/strong> 전혀 아닙니다. &lt;code>===&lt;/code>는 인터닝 여부와 무관하게 &lt;strong>항상 정확해요.&lt;/strong> 인터닝된 문자열끼리는 포인터 비교로 더 빠를 뿐이지, 인터닝 안 된 문자열도 내용 비교를 통해 정확한 결과를 반환합니다. 인터닝은 &lt;strong>성능&lt;/strong> 최적화이지, &lt;strong>정확성&lt;/strong>에는 영향을 주지 않아요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;p>일반 JS 코드로는 인터닝 여부를 확인할 방법이 아예 없어요. &lt;code>===&lt;/code>, &lt;code>typeof&lt;/code>, &lt;code>Object.is&lt;/code> 뭘 써도 리터럴과 동적 문자열을 구분할 수 없습니다. 이것이 &lt;strong>as-if rule&lt;/strong>의 핵심 — 관찰할 수 없으면 다르게 구현해도 된다.&lt;/p>
+&lt;hr>
+&lt;h2>인터랙티브 실험실&lt;span class="hx:absolute hx:-mt-20" id="인터랙티브-실험실">&lt;/span>
+&lt;a href="#%ec%9d%b8%ed%84%b0%eb%9e%99%ed%8b%b0%eb%b8%8c-%ec%8b%a4%ed%97%98%ec%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>아래에서 이 글의 내용을 직접 실행하고, 퀴즈로 확인해볼 수 있어요.&lt;/p>
+&lt;iframe id="ch11-lab" src="https://blog.girae.me/demos/ch11-primitive-vs-object/" style="width:100%;border:none;border-radius:12px;min-height:2400px;margin:1rem 0;" loading="lazy" title="Ch11 인터랙티브 실험실" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
+&lt;script>window.addEventListener('message',function(e){if(e.data&amp;&amp;e.data.type==='demo-resize'){document.getElementById('ch11-lab').style.height=e.data.height+16+'px'}});&lt;/script>
+&lt;hr>
+&lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
+&lt;a href="#%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>개념&lt;/th>
+&lt;th>스펙이 정한 규칙&lt;/th>
+&lt;th>V8의 실제 구현&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>원시 값 불변성&lt;/td>
+&lt;td>값 자체를 수정할 수 없다&lt;/td>
+&lt;td>문자열: 실제로 차단 / Smi: 변이 연산 자체가 없음&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>변수 재할당&lt;/td>
+&lt;td>&amp;ldquo;바인딩의 값을 변경&amp;rdquo;&lt;/td>
+&lt;td>Smi: 덮어쓰기 / HeapNumber, 문자열: 새 객체&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>문자열 인터닝&lt;/td>
+&lt;td>스펙에 없음 (구현 자유)&lt;/td>
+&lt;td>리터럴, 키는 인터닝 / 동적 생성은 안 됨&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>&lt;code>===&lt;/code> 비교&lt;/td>
+&lt;td>원시값은 값 비교, 객체는 참조 비교&lt;/td>
+&lt;td>인터닝 여부와 무관하게 항상 정확&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>교재를 읽을 때 기억할 점: &lt;strong>스펙의 모델과 V8의 구현은 추상화 레벨이 달라요.&lt;/strong> 교재는 스펙을 기반으로 설명하는데, 이건 &amp;ldquo;틀린 게 아니라 다른 레벨의 진실&amp;quot;이에요. 스펙은 모든 엔진을 포용하는 동작 정의이고, V8은 그 안에서 as-if rule을 활용해 성능을 극대화합니다.&lt;/p>
+&lt;hr>
+&lt;h3>참고 자료&lt;span class="hx:absolute hx:-mt-20" id="참고-자료">&lt;/span>
+&lt;a href="#%ec%b0%b8%ea%b3%a0-%ec%9e%90%eb%a3%8c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>&lt;a href="https://v8.dev/blog/mutable-heap-number"target="_blank" rel="noopener">Turbocharging V8 with mutable heap numbers&lt;/a> — HeapNumber 불변성과 MutableHeapNumber 최적화&lt;/li>
+&lt;li>&lt;a href="https://v8.dev/blog/react-cliff"target="_blank" rel="noopener">The story of a V8 performance cliff in React&lt;/a> — Smi와 HeapNumber 표현 차이&lt;/li>
+&lt;li>&lt;a href="https://v8.dev/blog/pointer-compression"target="_blank" rel="noopener">Pointer Compression in V8&lt;/a> — 태그드 포인터와 Smi 인코딩&lt;/li>
+&lt;/ul></description></item></channel></rss>
