@@ -1,0 +1,402 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Hoisting</title><link>https://blog.girae.me/tags/hoisting/</link><description>Recent content in Hoisting on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Wed, 29 Apr 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/hoisting/index.xml" rel="self" type="application/rss+xml"/><item><title>ch12. 함수 — 내가 JS를 설계했다면 어떻게 도달했을까</title><link>https://blog.girae.me/learning-log/ch12-functions/</link><pubDate>Wed, 29 Apr 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch12-functions/</guid><description>
+&lt;p>모던 자바스크립트 Deep Dive 12장을 읽다가 한 문장에서 멈췄어요.&lt;/p>
+&lt;blockquote>
+&lt;p>함수 표현식의 함수 이름은 함수 몸체 내에서만 참조할 수 있는 식별자다.&lt;/p>
+&lt;/blockquote>
+&lt;p>이게 무슨 말이지? 외부에서는 변수 이름으로 호출하고, 내부에서는 함수 이름으로 자기를 부른다고? 같은 함수에 이름이 두 갈래인 게 어색했어요. C나 파이썬에서는 함수 이름 하나로 안과 밖을 다 부르거든요.&lt;/p>
+&lt;p>그래서 직접 입장이 되어보기로 했습니다. 내가 JS 설계자라면, 어떤 시행착오를 거쳐 이 결론에 도달할까? 책을 덮고 머릿속으로 다시 만들어보는 거예요. 이 글은 그 회고록입니다.&lt;/p>
+&lt;hr>
+&lt;h2>1. 시작점: 함수도 그냥 값으로 다루고 싶다&lt;span class="hx:absolute hx:-mt-20" id="1-시작점-함수도-그냥-값으로-다루고-싶다">&lt;/span>
+&lt;a href="#1-%ec%8b%9c%ec%9e%91%ec%a0%90-%ed%95%a8%ec%88%98%eb%8f%84-%ea%b7%b8%eb%83%a5-%ea%b0%92%ec%9c%bc%eb%a1%9c-%eb%8b%a4%eb%a3%a8%ea%b3%a0-%ec%8b%b6%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>맨 처음 든 생각은 단순했어요. &lt;strong>함수를 특별 취급하지 말자.&lt;/strong> 옆에 &lt;code>var a = 1&lt;/code> 있는 것처럼, 함수도 그냥 변수에 묶어버리자.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">a&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">f&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">x&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">y&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">y&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">f&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 5
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>오 잘 되네요. &lt;code>a&lt;/code>도 값이고 &lt;code>f&lt;/code>도 값이에요. 함수가 일급 객체로 등극했어요.&lt;/p>
+&lt;p>이게 왜 좋냐면, 함수를 인자로 넘기거나 변수에 다시 담아서 옮길 수 있기 때문이에요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">twice&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">f&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 같은 함수를 다른 이름으로
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">twice&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">20&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 30 — 동작 OK
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">[&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">].&lt;/span>&lt;span class="nx">map&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">*&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="p">});&lt;/span> &lt;span class="c1">// 콜백으로 전달도 가능
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>여기까지는 행복합니다. 그런데 곧 문제를 만나요.&lt;/p>
+&lt;h2>2. 그런데 함수면 재귀를 써야 하지 않나?&lt;span class="hx:absolute hx:-mt-20" id="2-그런데-함수면-재귀를-써야-하지-않나">&lt;/span>
+&lt;a href="#2-%ea%b7%b8%eb%9f%b0%eb%8d%b0-%ed%95%a8%ec%88%98%eb%a9%b4-%ec%9e%ac%ea%b7%80%eb%a5%bc-%ec%8d%a8%ec%95%bc-%ed%95%98%ec%a7%80-%ec%95%8a%eb%82%98" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>함수라면 자기 자신을 호출하는 순간이 와요. 피보나치, 팩토리얼, 트리 순회… 재귀 없이 짜기 귀찮은 게 너무 많아요.&lt;/p>
+&lt;p>C는 어떻게 했더라?&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="nf">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">int&lt;/span> &lt;span class="n">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nl">n&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="nf">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nf">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>파이썬도 마찬가지예요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="line">&lt;span class="cl">&lt;span class="k">def&lt;/span> &lt;span class="nf">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="n">n&lt;/span> &lt;span class="k">if&lt;/span> &lt;span class="n">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="k">else&lt;/span> &lt;span class="n">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">)&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>외부에서 부르는 이름과 내부에서 자기를 부르는 이름이 똑같아요. 그러면 우리도 똑같이 만들면 되겠죠?&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 55
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>오 동작합니다. C나 파이썬과 다를 게 없네요. 끝난 줄 알았어요.&lt;/p>
+&lt;h2>3. 그런데 우리는 &amp;lsquo;자유로운 JS&amp;rsquo;잖아?&lt;span class="hx:absolute hx:-mt-20" id="3-그런데-우리는-자유로운-js잖아">&lt;/span>
+&lt;a href="#3-%ea%b7%b8%eb%9f%b0%eb%8d%b0-%ec%9a%b0%eb%a6%ac%eb%8a%94-%ec%9e%90%ec%9c%a0%eb%a1%9c%ec%9a%b4-js%ec%9e%96%ec%95%84" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기서 우리만의 결정적 차이가 등장해요. &lt;strong>함수도 변수에 담긴 값&lt;/strong>이라는 우리의 철학이요.&lt;/p>
+&lt;p>C에서는 함수 이름을 한번 선언하면 같은 이름으로 변수를 만들 수 없어요. 컴파일러가 막아요. 그게 C의 규율이에요.&lt;/p>
+&lt;p>근데 우리는 다르잖아요. 함수도 그냥 값이에요. &lt;code>var fib = ...&lt;/code>로 만든 거니까 다른 변수처럼 자유롭게 재할당할 수 있어야 해요. 그게 &amp;ldquo;자유&amp;quot;고 우리의 매력 포인트니까요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 어? 변수니까 당연히 가능해야지
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>여기까지는 별 문제 없어 보여요. &lt;code>fib&lt;/code>라는 변수가 함수에서 숫자로 바뀐 것뿐이니까. 그런데 함정이 있어요.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-green-200 hx:bg-green-100 hx:text-green-900 hx:dark:border-green-200/30 hx:dark:bg-green-900/30 hx:dark:text-green-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">아래 코드는 실제로 버그를 유발하는 패턴이에요. 외부 변수 의존 재귀의 위험성을 직접 보여줍니다.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">keep&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 함수 객체를 다른 변수로 잡아둠
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// 외부에서 fib를 재할당
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nx">keep&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 어떻게 될까?
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>keep&lt;/code>은 그 함수 객체를 여전히 잡고 있어요. 그러니까 호출은 되겠죠. 함수 안에 들어가요. 그리고 만나요. &lt;code>fib(n-1)&lt;/code>을.&lt;/p>
+&lt;p>이때 &lt;code>fib&lt;/code>를 룩업해요. 어디서? 외부 스코프에서. 그런데 외부 &lt;code>fib&lt;/code>는 이제 &lt;code>10&lt;/code>이에요. 함수가 아니에요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>TypeError: fib is not a function&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>큰일이에요. &lt;strong>함수가 자기 자신을 부를 수 없게 됐어요.&lt;/strong> 자유의 대가가 너무 컸어요.&lt;/p>
+&lt;p>이게 책에서 말하는 &amp;ldquo;외부 변수 의존 재귀의 위험성&amp;quot;이에요. 직접 마주쳐 보니 명확해져요.&lt;/p>
+&lt;h2>4. 외부와 내부를 어떻게 분리할까?&lt;span class="hx:absolute hx:-mt-20" id="4-외부와-내부를-어떻게-분리할까">&lt;/span>
+&lt;a href="#4-%ec%99%b8%eb%b6%80%ec%99%80-%eb%82%b4%eb%b6%80%eb%a5%bc-%ec%96%b4%eb%96%bb%ea%b2%8c-%eb%b6%84%eb%a6%ac%ed%95%a0%ea%b9%8c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>문제의 본질은 이거예요.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>외부에서 함수에 접근하는 이름&lt;/strong>과 &lt;strong>함수가 자기 자신을 부르는 이름&lt;/strong>이 같은 변수 슬롯을 보고 있다.
+외부에서 그 슬롯을 바꾸면 내부도 깨진다.&lt;/p>
+&lt;/blockquote>
+&lt;p>그러면 둘을 분리하면 되겠어요. 내부에서 자기를 부를 때는 &lt;strong>함수 자체에 박혀 있는 별도의 이름&lt;/strong>을 쓰게 하자. 외부에서 절대 손댈 수 없는 이름으로요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span> &lt;span class="nx">self&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="c1">// self는 함수에 박힌 이름
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="nx">self&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">self&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">keep&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">fib&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">keep&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// ✅ self는 외부 fib와 무관 → 여전히 동작
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>외부에서는 변수 식별자 &lt;code>fib&lt;/code>로 부르고, 내부에서는 함수에 박힌 &lt;code>self&lt;/code>로 자기를 불러요. 외부 &lt;code>fib&lt;/code>를 뭐로 재할당하든 내부 &lt;code>self&lt;/code>는 흔들리지 않아요.&lt;/p>
+&lt;p>이게 &lt;strong>명명된 함수 표현식(named function expression)&lt;/strong> 의 정체예요. 이름이 두 갈래로 나뉘는 거죠.&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>외부용 이름&lt;/strong> = 변수 식별자 (&lt;code>fib&lt;/code>) — 외부 스코프에 등록, 자유롭게 재할당 가능&lt;/li>
+&lt;li>&lt;strong>내부용 이름&lt;/strong> = 함수 자체에 박힌 이름 (&lt;code>self&lt;/code>) — 함수 몸체에서만 보임, 재할당 불가&lt;/li>
+&lt;/ul>
+&lt;h2>5. 그런데 외부에서는 왜 &lt;code>self&lt;/code>를 못 부를까?&lt;span class="hx:absolute hx:-mt-20" id="5-그런데-외부에서는-왜-self를-못-부를까">&lt;/span>
+&lt;a href="#5-%ea%b7%b8%eb%9f%b0%eb%8d%b0-%ec%99%b8%eb%b6%80%ec%97%90%ec%84%9c%eb%8a%94-%ec%99%9c-self%eb%a5%bc-%eb%aa%bb-%eb%b6%80%eb%a5%bc%ea%b9%8c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기서 한 발 더 들어가면 자연스러운 의문이 들어요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">self&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// ❌ ReferenceError: self is not defined
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>분명히 코드에 &lt;code>self&lt;/code>가 있는데 외부에서는 부를 수 없어요. 왜?&lt;/p>
+&lt;p>다시 처음 문제로 돌아가 보면 답이 나와요. 우리가 &lt;code>self&lt;/code>를 만든 이유는 &lt;strong>외부에서 손댈 수 없게&lt;/strong> 하기 위함이었어요. 만약 &lt;code>self&lt;/code>도 외부 스코프에 등록됐다면? 누가 &lt;code>self = 10&lt;/code>이라고 재할당해버리면 똑같은 문제가 다시 생겨요.&lt;/p>
+&lt;blockquote>
+&lt;p>우리는 &lt;code>self&lt;/code>를 &lt;strong>함수가 자기 자신을 부르는 안전한 비밀 통로&lt;/strong>로 만들고 싶었지, 외부와 공유하는 또 다른 식별자로 만들고 싶었던 게 아니다.&lt;/p>
+&lt;/blockquote>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">ECMAScript 스펙(§15.2)은 명명된 함수 표현식을 위해 &lt;strong>별도의 환경(Environment Record)&lt;/strong> 을 만들어요. 그 환경에는 &lt;code>self → 함수 객체&lt;/code>라는 immutable 바인딩만 들어 있고, 함수 몸체는 이 환경을 부모 스코프로 갖습니다. 외부에서는 이 환경에 접근할 길이 없어서 &lt;code>self&lt;/code>를 볼 수 없는 거예요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>외부 스코프
+↓
+[ 비밀 환경: { self → 함수 } ] ← 함수 몸체만 이 환경을 본다
+↓
+함수 몸체&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>외부에서는 이 비밀 환경에 접근할 길이 없어요. 함수 몸체 안에서만, 그것도 immutable로 보입니다.&lt;/p>
+&lt;h2>6. 여기서 얻은 인사이트&lt;span class="hx:absolute hx:-mt-20" id="6-여기서-얻은-인사이트">&lt;/span>
+&lt;a href="#6-%ec%97%ac%ea%b8%b0%ec%84%9c-%ec%96%bb%ec%9d%80-%ec%9d%b8%ec%82%ac%ec%9d%b4%ed%8a%b8" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>이 시행착오를 거치고 나니까 이렇게 정리됐어요.&lt;/p>
+&lt;p>함수 표현식의 이름이 &amp;ldquo;함수 몸체 내에서만 참조할 수 있는 식별자&amp;quot;인 이유는, 단순히 그렇게 만든 게 아니라 &lt;strong>외부 변수 재할당의 위험을 막기 위한 안전장치&lt;/strong>였어요.&lt;/p>
+&lt;ul>
+&lt;li>외부에서 함수를 잃어버려도 (&lt;code>fib = 10&lt;/code>) 함수 자기 참조는 안전&lt;/li>
+&lt;li>함수가 다른 객체의 메서드로 옮겨가도 자기 참조는 그대로 작동&lt;/li>
+&lt;li>IIFE처럼 외부에 잡아둘 변수 자체가 없는 경우에도 자기 참조 가능&lt;/li>
+&lt;/ul>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// IIFE 안에서 자기 재귀 — 외부 변수 자체가 없는데도 가능
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kd">function&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="o">?&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">:&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">1&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">fib&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">n&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">})(&lt;/span>&lt;span class="mi">10&lt;/span>&lt;span class="p">);&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h2>7. 시점 전환 — 이번엔 함수를 &amp;lsquo;쓰는 쪽&amp;rsquo;에서 보자&lt;span class="hx:absolute hx:-mt-20" id="7-시점-전환--이번엔-함수를-쓰는-쪽에서-보자">&lt;/span>
+&lt;a href="#7-%ec%8b%9c%ec%a0%90-%ec%a0%84%ed%99%98--%ec%9d%b4%eb%b2%88%ec%97%94-%ed%95%a8%ec%88%98%eb%a5%bc-%ec%93%b0%eb%8a%94-%ec%aa%bd%ec%97%90%ec%84%9c-%eb%b3%b4%ec%9e%90" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>지금까지 우리가 풀던 건 &lt;strong>함수 안에서 자기를 부르는 문제&lt;/strong>였어요. 내부 스코프의 관점이었죠. 그래서 내부 전용 이름이라는 안전장치가 나왔고요.&lt;/p>
+&lt;p>이번엔 시점을 한 칸 밖으로 옮겨볼게요. &lt;strong>함수가 선언된 그 파일(스코프) 안에서 그 함수를 사용하는 입장&lt;/strong>이요. 외부 스코프 관점이에요.&lt;/p>
+&lt;p>함수를 한 파일에 모아두고 쓸 때 어떤 모양이 자연스러울까요? 직관적으로 떠오르는 건 이런 구조예요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">main&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">main&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep2&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">doStep2&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>main&lt;/code>이 맨 위에 있고, &lt;code>main&lt;/code>이 호출하는 헬퍼들이 아래에 정의돼 있어요. C, 파이썬, 자바, 어디서든 흔히 보는 구조예요. &lt;strong>추상도 높은 진입점이 위, 디테일이 아래&lt;/strong>. 코드를 읽을 때 &amp;ldquo;큰 그림 → 세부&amp;quot;로 자연스럽게 흘러가요.&lt;/p>
+&lt;p>그런데 이 흐름이 우리가 4번에서 만든 함수 표현식 형태에서는 깨져요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">main&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// ❌ TypeError: main is not a function
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">main&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">doStep1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>var&lt;/code>는 변수 호이스팅 규칙을 따라요. 선언만 끌어올리고 함수 객체 할당은 그 자리에서 일어나죠. 그러니까 &lt;code>main()&lt;/code>이 호출되는 시점에 &lt;code>main&lt;/code>은 아직 &lt;code>undefined&lt;/code>예요. 함수가 아니에요.&lt;/p>
+&lt;p>가독성을 살리려면 모든 정의를 위에 두고 호출은 아래에 두는 식으로 코드를 거꾸로 짜야 해요. 사람이 읽기엔 직관과 반대 방향이에요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="c1">// 표현식만 쓰면 어쩔 수 없이 이런 모양이 된다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">var&lt;/span> &lt;span class="nx">doStep1&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">doStep2&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">main&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep2&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">main&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// 호출은 마지막에
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>여기서 우리가 원하는 게 명확해져요.&lt;/p>
+&lt;blockquote>
+&lt;p>함수라면 이 파일 어디에 정의돼 있든 &lt;strong>위치와 상관없이&lt;/strong> 부를 수 있어야 한다. 그래야 코드를 사람 읽는 순서대로 배치할 수 있다.&lt;/p>
+&lt;/blockquote>
+&lt;p>이걸 만족시키려면 함수 표현식과는 다른 동작이 필요해요. 변수처럼 동작하면 안 되고, &lt;strong>선언 위치와 무관하게 그 스코프의 영구 시민&lt;/strong>이 돼야 해요. 그래서 새 문법을 추가해요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">main&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="c1">// 함수 선언문
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">doStep2&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">doStep1&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">doStep2&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="p">...&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">main&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// ✅ 어디서든 호출 가능
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>이게 &lt;strong>함수 선언문&lt;/strong>이고, 이때 일어나는 게 &lt;strong>함수 호이스팅&lt;/strong>이에요. 변수 호이스팅과 결정적으로 달라요.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&lt;strong>선언문은 함수 자체가 호이스팅되고, 표현식은 변수만 호이스팅된다.&lt;/strong> 12장에서 가장 자주 헷갈리는 부분이에요.&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>변수 호이스팅 (함수 표현식)&lt;/strong>: 이름만 미리 등록, 값은 &lt;code>undefined&lt;/code>. 할당은 코드 흐름대로.&lt;/li>
+&lt;li>&lt;strong>함수 호이스팅 (함수 선언문)&lt;/strong>: 이름과 &lt;strong>함수 객체까지&lt;/strong> 한 번에 등록. 즉시 호출 가능.&lt;/li>
+&lt;/ul>&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="nx">hello&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// ✅ &amp;#34;안녕&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">function&lt;/span> &lt;span class="nx">hello&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;안녕&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">bye&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// ❌ TypeError: bye is not a function
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="kd">var&lt;/span> &lt;span class="nx">bye&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="kd">function&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;잘가&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="p">};&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;h2>8. 두 줄기가 같은 뿌리에서 나왔다&lt;span class="hx:absolute hx:-mt-20" id="8-두-줄기가-같은-뿌리에서-나왔다">&lt;/span>
+&lt;a href="#8-%eb%91%90-%ec%a4%84%ea%b8%b0%ea%b0%80-%ea%b0%99%ec%9d%80-%eb%bf%8c%eb%a6%ac%ec%97%90%ec%84%9c-%eb%82%98%ec%99%94%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기서 재밌는 게 보여요. 4~6번에서 한 얘기랑 7번에서 한 얘기가 별개처럼 보이지만, 사실 같은 뿌리에서 갈라져 나온 거예요.&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>관점&lt;/th>
+&lt;th>무엇을 원했나&lt;/th>
+&lt;th>결과&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>내부 스코프&lt;/td>
+&lt;td>함수 안에서 자기 자신을 안전하게 부르고 싶다&lt;/td>
+&lt;td>명명된 함수 표현식 — 외부와 분리된 내부 전용 immutable 이름&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>외부 스코프&lt;/td>
+&lt;td>파일 안 어디서든 함수를 부르고 싶다 (가독성)&lt;/td>
+&lt;td>함수 선언문 — 위치 무관하게 살아 있는 함수 호이스팅&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;blockquote>
+&lt;p>함수도 결국 값일 뿐이라는 일관성을 지키려다 보니 → 자기 참조에서 변수 재할당 위험이 따라왔고 → 그걸 막으려고 내부 전용 이름이 도입됐다.
+같은 일관성 때문에 → 함수 표현식은 변수 호이스팅을 그대로 따르게 됐고 → 그 동작이 가독성과 충돌하니 → 위치 무관하게 살아 있는 함수 선언문이 따로 도입됐다.&lt;/p>
+&lt;/blockquote>
+&lt;p>함수에 이름이 여러 갈래로 등장하는 이유가, 결국 &lt;strong>&amp;ldquo;함수도 값이다&amp;quot;라는 일관성&lt;/strong>과 &lt;strong>&amp;ldquo;근데 함수만의 편의도 필요하다&amp;quot;는 실용성&lt;/strong> 사이의 절충에서 나온 거예요.&lt;/p>
+&lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
+&lt;a href="#%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>내가 JS를 설계했다면, 함수의 두 가지 이름과 호이스팅 차이라는 기능에 이런 과정으로 도달했을 것 같아요.&lt;/p>
+&lt;p>&lt;strong>[내부 스코프 관점]&lt;/strong>&lt;/p>
+&lt;ol>
+&lt;li>함수를 값으로 다루고 싶다 → 함수 표현식 도입&lt;/li>
+&lt;li>함수면 재귀가 필요하다 → 자기 자신을 부를 방법 필요&lt;/li>
+&lt;li>외부 변수 의존은 재할당에 취약하다 → 외부와 분리된 내부 전용 이름&lt;/li>
+&lt;li>그 이름은 외부에서 손댈 수 없어야 한다 → 함수 몸체 안에서만 보이는 immutable 바인딩&lt;/li>
+&lt;/ol>
+&lt;p>&lt;strong>[외부 스코프 관점]&lt;/strong>&lt;/p>
+&lt;ol start="5">
+&lt;li>표현식 형태만 있으면 가독성을 위해 호출을 항상 정의 뒤에 둬야 한다 → 위치 무관 호출이 필요&lt;/li>
+&lt;li>그러려면 함수가 스코프의 영구 시민이 되어야 한다 → 함수 선언문 도입&lt;/li>
+&lt;li>변수와는 다른 호이스팅 방식이 필요하다 → 함수 자체가 호이스팅되는 함수 호이스팅&lt;/li>
+&lt;/ol>
+&lt;p>책을 그냥 읽으면 &amp;ldquo;왜?&amp;ldquo;가 안 풀려요. 근데 직접 설계자 입장이 되어 보면 &amp;ldquo;아 이래서 이렇게 됐구나&amp;quot;가 자연스럽게 보여요. 결정마다 그 이전 결정의 부작용을 메우거나 다른 요구를 추가로 받아들이는 식으로 쌓여 있거든요.&lt;/p>
+&lt;hr>
+&lt;p>다음 글에서는 12장 후반부 — &lt;strong>매개변수와 인수, arguments 객체, 다양한 함수 형태(IIFE, 콜백, 순수 함수)&lt;/strong> 를 정리해보려 해요. 이번 글에서 깐 흐름의 연장선에서 풀어보고 싶어요.&lt;/p></description></item></channel></rss>
