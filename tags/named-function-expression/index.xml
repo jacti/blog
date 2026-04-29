@@ -144,6 +144,8 @@ title="Copy code"
 &lt;/div>
 &lt;p>큰일이에요. &lt;strong>함수가 자기 자신을 부를 수 없게 됐어요.&lt;/strong> 자유의 대가가 너무 컸어요.&lt;/p>
 &lt;p>이게 책에서 말하는 &amp;ldquo;외부 변수 의존 재귀의 위험성&amp;quot;이에요. 직접 마주쳐 보니 명확해져요.&lt;/p>
+&lt;iframe id="demo-ch12-fib" src="https://blog.girae.me/demos/ch12-fib-recursion/" style="width:100%;border:none;border-radius:12px;min-height:580px;margin:1rem 0;" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
+&lt;script>window.addEventListener('message',function(e){if(e.data&amp;&amp;e.data.type==='demo-resize'){document.getElementById('demo-ch12-fib').style.height=e.data.height+16+'px'}});&lt;/script>
 &lt;h2>4. 외부와 내부를 어떻게 분리할까?&lt;span class="hx:absolute hx:-mt-20" id="4-외부와-내부를-어떻게-분리할까">&lt;/span>
 &lt;a href="#4-%ec%99%b8%eb%b6%80%ec%99%80-%eb%82%b4%eb%b6%80%eb%a5%bc-%ec%96%b4%eb%96%bb%ea%b2%8c-%eb%b6%84%eb%a6%ac%ed%95%a0%ea%b9%8c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>문제의 본질은 이거예요.&lt;/p>
 &lt;blockquote>
