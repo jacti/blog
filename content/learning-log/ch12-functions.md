@@ -110,6 +110,10 @@ TypeError: fib is not a function
 
 이게 책에서 말하는 "외부 변수 의존 재귀의 위험성"이에요. 직접 마주쳐 보니 명확해져요.
 
+<iframe id="demo-ch12-fib" src="/demos/ch12-fib-recursion/" style="width:100%;border:none;border-radius:12px;min-height:580px;margin:1rem 0;" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'"></iframe>
+
+<script>window.addEventListener('message',function(e){if(e.data&&e.data.type==='demo-resize'){document.getElementById('demo-ch12-fib').style.height=e.data.height+16+'px'}});</script>
+
 ## 4. 외부와 내부를 어떻게 분리할까?
 
 문제의 본질은 이거예요.

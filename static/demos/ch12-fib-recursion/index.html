@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch12 — 외부 변수 재할당과 재귀</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: #0d9488; --green: #059669; --red: #dc2626;
+      --warn-bg: #fef3c7; --warn-border: #fcd34d; --warn-text: #92400e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent: #2dd4bf; --green: #34d399; --red: #f87171;
+        --warn-bg: #422006; --warn-border: #78350f; --warn-text: #fde68a;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 16px;
+    }
+    .repl {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .repl-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px;
+      background: var(--bg-code);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .repl-title {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 12px; color: #94a3b8;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .repl-title::before {
+      content: ""; width: 8px; height: 8px;
+      background: var(--accent); border-radius: 50%;
+    }
+    .repl-actions { display: flex; gap: 6px; }
+    .repl-btn {
+      padding: 5px 14px; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .repl-btn:hover { opacity: 0.85; }
+    .repl-btn-secondary {
+      background: transparent; color: #94a3b8;
+      border: 1px solid #334155;
+    }
+    .repl-btn-secondary:hover { background: rgba(148, 163, 184, 0.1); opacity: 1; }
+    .editor-wrap {
+      max-height: 380px; overflow: auto;
+    }
+    .cm-editor {
+      font-family: "JetBrains Mono", ui-monospace, monospace !important;
+      font-size: 13px; min-height: 220px;
+    }
+    .cm-editor.cm-focused { outline: none !important; }
+    .console-section {
+      border-top: 1px solid var(--border);
+    }
+    .console-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px;
+      background: var(--bg2);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .console-output {
+      padding: 12px 14px;
+      background: var(--bg-code);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 12.5px; line-height: 1.55;
+      color: #cbd5e1;
+      min-height: 80px; max-height: 240px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .log-line { padding: 2px 0; }
+    .log-line.log-error { color: #f87171; }
+    .log-line.log-muted { color: #64748b; font-style: italic; }
+    .hint {
+      margin-top: 12px; padding: 10px 14px;
+      background: var(--warn-bg); border: 1px solid var(--warn-border);
+      border-radius: 8px; font-size: 13px; color: var(--warn-text);
+    }
+    .hint code {
+      background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px;
+      font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .hint code { background: rgba(255,255,255,0.1); }
+    }
+    .kbd {
+      display: inline-block; padding: 1px 6px;
+      background: rgba(0,0,0,0.08); border: 1px solid var(--border);
+      border-radius: 4px; font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 11px; line-height: 1.4;
+    }
+    @media (prefers-color-scheme: dark) {
+      .kbd { background: rgba(255,255,255,0.08); }
+    }
+    iframe.sandbox { display: none; }
+  </style>
+</head>
+<body>
+  <div class="repl">
+    <div class="repl-header">
+      <div class="repl-title">try.js — 직접 수정해보세요</div>
+      <div class="repl-actions">
+        <button class="repl-btn-secondary repl-btn" id="reset-btn">Reset</button>
+        <button class="repl-btn" id="run-btn">실행 <span class="kbd" style="margin-left:4px;background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);color:#fff;">⌘↵</span></button>
+      </div>
+    </div>
+    <div class="editor-wrap" id="editor"></div>
+    <div class="console-section">
+      <div class="console-header">
+        <span>Console</span>
+        <span id="status">대기 중</span>
+      </div>
+      <div class="console-output" id="console"></div>
+    </div>
+  </div>
+
+  <div class="hint">
+    💡 <strong>실험 아이디어</strong>:
+    <code>fib = 10</code> 부분을 <code>fib = function(n){ return 999; }</code>으로 바꿔보면? <code>delete fib</code>를 시도해보면? 또는 함수 정의를 <code>var fib = function self(n){ return n &lt; 2 ? n : self(n-1) + self(n-2); }</code>처럼 명명된 함수 표현식으로 바꾸고 같은 시나리오를 돌려보세요.
+  </div>
+
+  <iframe class="sandbox" id="sandbox" sandbox="allow-scripts"></iframe>
+
+  <script type="module">
+    import { EditorView, basicSetup } from "https://esm.sh/codemirror@6.0.1";
+    import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2";
+    import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.2";
+    import { keymap } from "https://esm.sh/@codemirror/view@6.34.1";
+
+    const initialCode = `var fib = function(n) {
+  return n < 2 ? n : fib(n-1) + fib(n-2);
+};
+
+// 함수 객체를 다른 변수로 잡아둔다
+var keep = fib;
+console.log("정상 호출:", keep(5));
+
+// 외부 fib를 재할당
+fib = 10;
+
+// 함수 객체는 그대로지만, 내부에서 fib를 룩업하면?
+console.log("fib 재할당 후 keep 호출:");
+console.log(keep(5));
+`;
+
+    const editorView = new EditorView({
+      doc: initialCode,
+      extensions: [
+        basicSetup,
+        javascript(),
+        oneDark,
+        keymap.of([{
+          key: "Mod-Enter",
+          run: () => { runCode(); return true; }
+        }])
+      ],
+      parent: document.querySelector("#editor")
+    });
+
+    const sandboxHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><script>
+(function(){
+  function format(v){
+    if (typeof v === "string") return v;
+    if (typeof v === "function") return "[Function: " + (v.name || "anonymous") + "]";
+    if (v === null) return "null";
+    if (v === undefined) return "undefined";
+    if (typeof v === "object") {
+      try { return JSON.stringify(v); } catch (e) { return String(v); }
+    }
+    return String(v);
+  }
+  window.addEventListener("message", function(e){
+    var data = e.data || {};
+    if (data.type !== "run") return;
+    var out = [];
+    var origLog = console.log;
+    var origErr = console.error;
+    var origWarn = console.warn;
+    console.log = function(){
+      var args = Array.prototype.slice.call(arguments);
+      out.push({ level: "log", text: args.map(format).join(" ") });
+    };
+    console.error = function(){
+      var args = Array.prototype.slice.call(arguments);
+      out.push({ level: "error", text: args.map(format).join(" ") });
+    };
+    console.warn = console.error;
+    var error = null;
+    try {
+      (0, eval)(data.code);
+    } catch (err) {
+      var name = (err && err.constructor && err.constructor.name) || "Error";
+      var msg = (err && err.message) || String(err);
+      error = name + ": " + msg;
+    } finally {
+      console.log = origLog;
+      console.error = origErr;
+      console.warn = origWarn;
+    }
+    parent.postMessage({ type: "result", output: out, error: error }, "*");
+  });
+  parent.postMessage({ type: "ready" }, "*");
+})();
+<\/script></body></html>`;
+
+    const iframe = document.querySelector("#sandbox");
+    iframe.srcdoc = sandboxHTML;
+
+    const runBtn = document.querySelector("#run-btn");
+    const resetBtn = document.querySelector("#reset-btn");
+    const consoleEl = document.querySelector("#console");
+    const statusEl = document.querySelector("#status");
+
+    let sandboxReady = false;
+    let pendingRun = null;
+
+    function runCode() {
+      const code = editorView.state.doc.toString();
+      statusEl.textContent = "실행 중…";
+      if (!sandboxReady) { pendingRun = code; return; }
+      iframe.contentWindow.postMessage({ type: "run", code }, "*");
+    }
+
+    function renderResult({ output, error }) {
+      consoleEl.innerHTML = "";
+      if (output.length === 0 && !error) {
+        const div = document.createElement("div");
+        div.className = "log-line log-muted";
+        div.textContent = "(출력 없음)";
+        consoleEl.appendChild(div);
+      } else {
+        for (const line of output) {
+          const div = document.createElement("div");
+          div.className = "log-line" + (line.level === "error" ? " log-error" : "");
+          div.textContent = line.text;
+          consoleEl.appendChild(div);
+        }
+        if (error) {
+          const div = document.createElement("div");
+          div.className = "log-line log-error";
+          div.textContent = "▸ " + error;
+          consoleEl.appendChild(div);
+        }
+      }
+      statusEl.textContent = error ? "에러 발생" : "완료";
+      notifyHeight();
+    }
+
+    runBtn.addEventListener("click", runCode);
+    resetBtn.addEventListener("click", () => {
+      editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: initialCode }
+      });
+      consoleEl.innerHTML = "";
+      statusEl.textContent = "대기 중";
+      notifyHeight();
+    });
+
+    window.addEventListener("message", (e) => {
+      const data = e.data || {};
+      if (data.type === "ready" && e.source === iframe.contentWindow) {
+        sandboxReady = true;
+        if (pendingRun) {
+          iframe.contentWindow.postMessage({ type: "run", code: pendingRun }, "*");
+          pendingRun = null;
+        }
+      } else if (data.type === "result") {
+        renderResult(data);
+      }
+    });
+
+    function notifyHeight() {
+      requestAnimationFrame(() => {
+        const h = document.body.scrollHeight;
+        parent.postMessage({ type: "demo-resize", height: h }, "*");
+      });
+    }
+
+    new ResizeObserver(notifyHeight).observe(document.body);
+    setTimeout(notifyHeight, 200);
+  </script>
+</body>
+</html>
