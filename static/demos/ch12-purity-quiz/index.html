@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch12 — 순수함수 퀴즈</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: hsl(173, 80%, 36%);
+      --accent-light: hsl(173, 80%, 94%);
+      --correct: hsl(142, 71%, 45%);
+      --correct-light: hsl(142, 71%, 93%);
+      --wrong: hsl(0, 84%, 60%);
+      --wrong-light: hsl(0, 84%, 95%);
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent-light: hsl(173, 80%, 15%);
+        --correct-light: hsl(142, 50%, 15%);
+        --wrong-light: hsl(0, 50%, 15%);
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; padding: 16px;
+    }
+    .quiz-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .quiz-num {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: var(--accent-light);
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .quiz-question {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .code-block {
+      background: var(--bg-code);
+      color: #e2e8f0;
+      padding: 16px 18px;
+      border-radius: 8px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-block .kw { color: #c084fc; }
+    .code-block .fn { color: #60a5fa; }
+    .code-block .str { color: #34d399; }
+    .code-block .comment { color: #64748b; font-style: italic; }
+    .code-block .prop { color: #fbbf24; }
+
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .opt {
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: inherit;
+    }
+    .opt:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .opt:disabled { cursor: default; opacity: 0.7; }
+    .opt.correct {
+      border-color: var(--correct);
+      background: var(--correct-light);
+      color: var(--correct);
+    }
+    .opt.wrong {
+      border-color: var(--wrong);
+      background: var(--wrong-light);
+      color: var(--wrong);
+    }
+
+    .explanation {
+      display: none;
+      padding: 16px 18px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      font-size: 0.92rem;
+      line-height: 1.7;
+      animation: fadeIn 0.3s;
+    }
+    .explanation.show { display: block; }
+    .explanation h4 {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .explanation p { margin-bottom: 8px; }
+    .explanation p:last-child { margin-bottom: 0; }
+    .explanation code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85em;
+    }
+    @media (prefers-color-scheme: dark) {
+      .explanation code { background: rgba(255,255,255,0.06); }
+    }
+    .checklist {
+      list-style: none;
+      padding: 8px 0 0;
+      margin: 0;
+    }
+    .checklist li {
+      padding: 4px 0;
+      font-size: 0.88rem;
+    }
+    .checklist li::before {
+      content: "✓";
+      color: var(--correct);
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .checklist li.no::before {
+      content: "✗";
+      color: var(--wrong);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Q1 -->
+<div class="quiz-card" data-q="1">
+  <div class="quiz-num">Q1</div>
+  <div class="quiz-question">이 함수는 <strong>순수함수</strong>인가요?</div>
+  <div class="code-block"><span class="kw">function</span> <span class="fn">getName</span>(obj) {
+  <span class="kw">return</span> obj.<span class="prop">name</span>;
+}</div>
+  <div class="options">
+    <button class="opt" onclick="answer(1, '순수', this)">순수함수다</button>
+    <button class="opt" onclick="answer(1, '비순수', this)">비순수함수다</button>
+  </div>
+  <div class="explanation" id="exp-1">
+    <h4>정답: 순수함수</h4>
+    <p>세 가지 기준으로 점검해볼게요.</p>
+    <ul class="checklist">
+      <li class="no">인자 외부의 가변 상태를 읽나? — No (오직 인자 <code>obj</code>만 읽음)</li>
+      <li class="no">인자나 외부 상태를 mutate하나? — No</li>
+      <li class="no">관찰 가능한 IO를 일으키나? — No</li>
+    </ul>
+    <p style="margin-top:12px">세 기준 모두 No니까 <strong>순수함수</strong>예요.</p>
+    <p>"같은 <code>obj</code>를 넘겼는데 외부에서 <code>.name</code>이 바뀌면 결과가 달라지지 않나요?" 라는 의문이 자연스럽게 떠올라요. 맞아요, 그렇게 동작해요. 하지만 그건 <strong>함수의 죄가 아니라 호출자의 책임</strong>이에요. <code>getName</code>은 받은 객체의 현재 상태를 정확히 반영해 반환할 뿐, 자기는 아무것도 안 바꿔요. mutable한 객체에 의존한다는 점이 마음에 걸리면 <code>Object.freeze(obj)</code>로 굳혀 넘기면 참조 투명성까지 완벽해집니다.</p>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div class="quiz-card" data-q="2">
+  <div class="quiz-num">Q2</div>
+  <div class="quiz-question">이 함수는 <strong>순수함수</strong>인가요?</div>
+  <div class="code-block"><span class="kw">function</span> <span class="fn">add</span>(a, b) {
+  console.<span class="fn">log</span>(a, b);
+  <span class="kw">return</span> a + b;
+}</div>
+  <div class="options">
+    <button class="opt" onclick="answer(2, '순수', this)">순수함수다</button>
+    <button class="opt" onclick="answer(2, '비순수', this)">비순수함수다</button>
+  </div>
+  <div class="explanation" id="exp-2">
+    <h4>정답: 비순수함수</h4>
+    <p>같은 기준으로 점검해보면:</p>
+    <ul class="checklist">
+      <li class="no">인자 외부의 가변 상태를 읽나? — No</li>
+      <li class="no">인자나 외부 상태를 mutate하나? — No</li>
+      <li>관찰 가능한 IO를 일으키나? — <strong>Yes</strong> (console 출력)</li>
+    </ul>
+    <p style="margin-top:12px">하나라도 Yes면 <strong>비순수</strong>예요.</p>
+    <p>"console은 우리가 관리하는 상태가 아니지 않나요?" 라는 반박이 자연스러워요. 여기서 헷갈리기 쉬운 정의 하나를 짚어야 해요 — <strong>부수효과는 "내가 관리하는 상태"가 아니라 "외부에서 관찰 가능한 모든 변화"</strong>를 말해요. 함수 호출의 결과로 외부 세계(터미널 출력, 파일, 네트워크, DOM…)가 달라지면 전부 부수효과예요.</p>
+    <p>참조 투명성 테스트로도 확인할 수 있어요. <code>add(1, 2)</code>를 그 결과인 <code>3</code>으로 그냥 치환해도 프로그램이 동일하게 동작해야 순수인데, 치환하면 콘솔 출력이 사라져요. 동일하지 않으니 비순수.</p>
+    <p>비공식적으로 "로깅 정도는 순수에 가깝다" 같은 표현을 쓰기도 하지만, 학술적 용어는 아니에요. 엄밀히는 그냥 <strong>비순수</strong>이고, 그 비순수성이 코드 로직에 영향을 주느냐는 별개 문제로 사람이 맥락으로 봐야 해요.</p>
+  </div>
+</div>
+
+<div class="footer-note">두 문제 모두 풀어보고 정답과 이유를 확인했나요?</div>
+
+<script>
+const answers = { 1: '순수', 2: '비순수' };
+
+function answer(qNum, choice, btn) {
+  const card = document.querySelector(`[data-q="${qNum}"]`);
+  const opts = card.querySelectorAll('.opt');
+  const correct = answers[qNum];
+
+  opts.forEach(o => {
+    o.disabled = true;
+    const label = o.textContent.includes('순수함수다') && !o.textContent.includes('비순수') ? '순수' : '비순수';
+    if (label === correct) o.classList.add('correct');
+    else if (o === btn && choice !== correct) o.classList.add('wrong');
+  });
+
+  document.getElementById(`exp-${qNum}`).classList.add('show');
+  notifyResize();
+}
+
+function notifyResize() {
+  try {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'demo-resize', height: h }, '*');
+  } catch (e) {}
+}
+
+window.addEventListener('load', notifyResize);
+</script>
+</body>
+</html>
