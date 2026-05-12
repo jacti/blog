@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch12 — 블록 함수 호이스팅 실험</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: #0d9488; --green: #059669; --red: #dc2626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent: #2dd4bf; --green: #34d399; --red: #f87171;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 16px;
+    }
+    .repl {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .repl-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px;
+      background: var(--bg-code);
+      border-bottom: 1px solid var(--border);
+    }
+    .repl-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: var(--muted);
+    }
+    .repl-run {
+      padding: 4px 14px; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .repl-run:hover { opacity: 0.85; }
+    .repl-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 160px;
+    }
+    @media (max-width: 540px) {
+      .repl-body { grid-template-columns: 1fr; }
+    }
+    .repl-code {
+      padding: 0;
+      border-right: 1px solid var(--border);
+    }
+    @media (max-width: 540px) {
+      .repl-code { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    .repl-code textarea {
+      width: 100%; height: 100%; min-height: 180px;
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: transparent; color: var(--text);
+      border: none; outline: none; resize: vertical;
+      tab-size: 2;
+    }
+    .repl-output {
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: var(--bg-code); color: #a7f3d0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      min-height: 180px;
+    }
+    .repl-output .out-log { color: #a7f3d0; }
+    .repl-output .out-err { color: #f87171; }
+    .repl-output .out-true { color: #34d399; font-weight: 700; }
+    .repl-output .out-false { color: #f87171; font-weight: 700; }
+    .repl-output .out-undef { color: #64748b; font-style: italic; }
+    .repl-output .out-num { color: #fbbf24; }
+    .repl-output .out-str { color: #34d399; }
+    .repl-output .out-null { color: #64748b; font-weight: 700; }
+
+    .label {
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      margin: 20px 0 6px; letter-spacing: 0.03em;
+    }
+    .note {
+      font-size: 12px; color: var(--muted);
+      padding: 0 4px; margin-top: -6px; margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="label">실험 1 — strict 모드: 블록 안 함수는 블록 최상단으로 호이스팅</div>
+<div class="note">선언문보다 먼저 호출해도 동작합니다. TDZ가 없어요.</div>
+<div class="repl" id="repl-1">
+  <div class="repl-header">
+    <span class="repl-title">코드</span>
+    <button class="repl-run" onclick="run('repl-1')">Run</button>
+  </div>
+  <div class="repl-body">
+    <div class="repl-code">
+      <textarea>"use strict";
+{
+  foo();                  // 선언문보다 위에서 호출
+  function foo() {
+    console.log("foo() 실행됨");
+  }
+  foo();                  // 선언문 아래에서도 호출
+}
+try {
+  foo();                  // 블록 밖에서는?
+} catch (e) {
+  console.log("블록 밖:", e.constructor.name, "-", e.message);
+}</textarea>
+    </div>
+    <div class="repl-output"></div>
+  </div>
+</div>
+
+<div class="label">실험 2 — let / const는 다르다 (TDZ 존재)</div>
+<div class="note">함수 선언문과 달리 let/const는 선언 위치 전에 접근하면 ReferenceError가 나요.</div>
+<div class="repl" id="repl-2">
+  <div class="repl-header">
+    <span class="repl-title">코드</span>
+    <button class="repl-run" onclick="run('repl-2')">Run</button>
+  </div>
+  <div class="repl-body">
+    <div class="repl-code">
+      <textarea>"use strict";
+{
+  try {
+    bar();                       // TDZ! 아직 초기화 안 됨
+  } catch (e) {
+    console.log("bar() 호출:", e.constructor.name, "-", e.message);
+  }
+  const bar = () => console.log("bar 실행");
+
+  baz();                         // 함수 선언문은 OK
+  function baz() { console.log("baz 실행"); }
+}</textarea>
+    </div>
+    <div class="repl-output"></div>
+  </div>
+</div>
+
+<div class="label">실험 3 — 조건부 함수 정의: 함수 선언문 vs const + 표현식</div>
+<div class="note">strict 모드 기준. 함수 선언문은 블록 스코프에 갇히고, const + 표현식은 의도대로 동작해요.</div>
+<div class="repl" id="repl-3">
+  <div class="repl-header">
+    <span class="repl-title">코드</span>
+    <button class="repl-run" onclick="run('repl-3')">Run</button>
+  </div>
+  <div class="repl-body">
+    <div class="repl-code">
+      <textarea>"use strict";
+const isDev = true;
+
+// ❌ 패턴 1: 함수 선언문 — 둘 다 블록 스코프에 갇혀서 밖에서 안 보임
+if (isDev) {
+  function log(msg) { console.log("[DEV]", msg); }
+} else {
+  function log(msg) { /* no-op */ }
+}
+try {
+  log("hello");
+} catch (e) {
+  console.log("선언문 패턴:", e.constructor.name, "-", e.message);
+}
+
+// ✅ 패턴 2: const + 함수 표현식 — 깔끔하게 동작
+const log2 = isDev
+  ? (msg) => console.log("[DEV]", msg)
+  : (msg) => {};
+log2("표현식 패턴: 정상 동작");</textarea>
+    </div>
+    <div class="repl-output"></div>
+  </div>
+</div>
+
+<script>
+function formatValue(v) {
+  if (v === undefined) return '<span class="out-undef">undefined</span>';
+  if (v === null) return '<span class="out-null">null</span>';
+  if (typeof v === 'boolean') return '<span class="out-' + v + '">' + v + '</span>';
+  if (typeof v === 'number') return '<span class="out-num">' + v + '</span>';
+  if (typeof v === 'string') return '<span class="out-str">"' + v.replace(/</g,'&lt;') + '"</span>';
+  if (Array.isArray(v)) return '[' + v.map(formatValue).join(', ') + ']';
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
+
+function run(id) {
+  const repl = document.getElementById(id);
+  const code = repl.querySelector('textarea').value;
+  const outputEl = repl.querySelector('.repl-output');
+  const lines = [];
+
+  const origLog = console.log;
+  console.log = function(...args) {
+    const formatted = args.map(a => {
+      if (typeof a === 'string') return a.replace(/</g, '&lt;');
+      return formatValue(a);
+    }).join(' ');
+    lines.push('<span class="out-log">' + formatted + '</span>');
+  };
+
+  try {
+    const fn = new Function(code);
+    fn();
+  } catch (e) {
+    lines.push('<span class="out-err">' + e.constructor.name + ': ' + e.message.replace(/</g,'&lt;') + '</span>');
+  }
+
+  console.log = origLog;
+  outputEl.innerHTML = lines.join('\n') || '<span class="out-undef">undefined</span>';
+  notifyResize();
+}
+
+function notifyResize() {
+  try {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'demo-resize', height: h }, '*');
+  } catch (e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  run('repl-1');
+  run('repl-2');
+  run('repl-3');
+});
+</script>
+</body>
+</html>
