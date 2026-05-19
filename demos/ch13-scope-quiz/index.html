@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch13 — 스코프 퀴즈</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: hsl(173, 80%, 36%);
+      --accent-light: hsl(173, 80%, 94%);
+      --correct: hsl(142, 71%, 45%);
+      --correct-light: hsl(142, 71%, 93%);
+      --wrong: hsl(0, 84%, 60%);
+      --wrong-light: hsl(0, 84%, 95%);
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent-light: hsl(173, 80%, 15%);
+        --correct-light: hsl(142, 50%, 15%);
+        --wrong-light: hsl(0, 50%, 15%);
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; padding: 16px;
+    }
+    .quiz-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .quiz-num {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      background: var(--accent-light);
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .quiz-question {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .quiz-subq {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: -8px 0 14px;
+    }
+    .code-block {
+      background: var(--bg-code);
+      color: #e2e8f0;
+      padding: 16px 18px;
+      border-radius: 8px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .code-block .kw { color: #c084fc; }
+    .code-block .fn { color: #60a5fa; }
+    .code-block .str { color: #34d399; }
+    .code-block .num { color: #fbbf24; }
+    .code-block .comment { color: #64748b; font-style: italic; }
+    .code-block .prop { color: #fbbf24; }
+    .code-block .label {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+      margin-bottom: 6px;
+      font-family: "Noto Sans KR", sans-serif;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .options.three { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 540px) {
+      .options, .options.three { grid-template-columns: 1fr; }
+    }
+    .opt {
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+      font-family: "JetBrains Mono", monospace;
+      text-align: center;
+    }
+    .opt.text { font-family: "Noto Sans KR", sans-serif; }
+    .opt:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .opt:disabled { cursor: default; opacity: 0.7; }
+    .opt.correct {
+      border-color: var(--correct);
+      background: var(--correct-light);
+      color: var(--correct);
+    }
+    .opt.wrong {
+      border-color: var(--wrong);
+      background: var(--wrong-light);
+      color: var(--wrong);
+    }
+
+    .explanation {
+      display: none;
+      padding: 16px 18px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      font-size: 0.92rem;
+      line-height: 1.7;
+      animation: fadeIn 0.3s;
+    }
+    .explanation.show { display: block; }
+    .explanation h4 {
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .explanation p { margin-bottom: 10px; }
+    .explanation p:last-child { margin-bottom: 0; }
+    .explanation code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85em;
+    }
+    @media (prefers-color-scheme: dark) {
+      .explanation code { background: rgba(255,255,255,0.06); }
+    }
+
+    .side-by-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 540px) {
+      .side-by-side { grid-template-columns: 1fr; }
+    }
+    .side-by-side .code-block { margin-bottom: 0; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .progress {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .progress-dot {
+      width: 28px; height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+    .progress-dot.done.correct { background: var(--correct); }
+    .progress-dot.done.wrong { background: var(--wrong); }
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 16px;
+    }
+    .score {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      background: var(--accent-light);
+      color: var(--accent);
+      display: none;
+    }
+    .score.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress">
+  <div class="progress-dot" data-dot="1"></div>
+  <div class="progress-dot" data-dot="2"></div>
+  <div class="progress-dot" data-dot="3"></div>
+  <div class="progress-dot" data-dot="4"></div>
+</div>
+
+<div class="score" id="score"></div>
+
+<!-- Q1: 렉시컬 스코프 -->
+<div class="quiz-card" data-q="1">
+  <div class="quiz-num">Q1</div>
+  <div class="quiz-question">다음 코드의 출력은?</div>
+  <div class="code-block"><span class="kw">let</span> x = <span class="num">1</span>;
+<span class="kw">function</span> <span class="fn">outer</span>() {
+  <span class="kw">let</span> x = <span class="num">2</span>;
+  <span class="kw">function</span> <span class="fn">inner</span>() {
+    console.<span class="fn">log</span>(x);
+  }
+  <span class="kw">return</span> inner;
+}
+<span class="kw">const</span> fn = <span class="fn">outer</span>();
+<span class="fn">fn</span>();</div>
+  <div class="options">
+    <button class="opt" data-ans="1" onclick="answer(1, '1', this)">1</button>
+    <button class="opt" data-ans="2" onclick="answer(1, '2', this)">2</button>
+    <button class="opt" data-ans="undefined" onclick="answer(1, 'undefined', this)">undefined</button>
+    <button class="opt" data-ans="error" onclick="answer(1, 'error', this)">ReferenceError</button>
+  </div>
+  <div class="explanation" id="exp-1">
+    <h4>정답: 2</h4>
+    <p><code>inner</code>는 자기가 <em>호출된 위치</em>가 아니라 <em>정의된 위치</em>의 스코프를 봐요. 정의된 위치에선 <code>outer</code>의 EnvRec이 상위 스코프고, 거기엔 <code>x: 2</code>가 있어요. 전역 <code>x: 1</code>은 더 위에 있지만, inner는 outer의 EnvRec에서 먼저 <code>x</code>를 찾았기 때문에 거기서 검색을 멈춰요.</p>
+    <p>이게 <strong>렉시컬 스코프</strong>의 정의예요. 동적 스코프 언어였다면 호출 시점의 환경을 봐서 <code>1</code>이 나왔을 거예요.</p>
+  </div>
+</div>
+
+<!-- Q2: var closure -->
+<div class="quiz-card" data-q="2">
+  <div class="quiz-num">Q2</div>
+  <div class="quiz-question">다음 코드의 출력은?</div>
+  <div class="code-block"><span class="kw">function</span> <span class="fn">makeCounters</span>() {
+  <span class="kw">const</span> counters = [];
+  <span class="kw">for</span> (<span class="kw">var</span> i = <span class="num">0</span>; i &lt; <span class="num">3</span>; i++) {
+    counters.<span class="fn">push</span>(() =&gt; i);
+  }
+  <span class="kw">return</span> counters;
+}
+<span class="kw">const</span> [a, b, c] = <span class="fn">makeCounters</span>();
+console.<span class="fn">log</span>(<span class="fn">a</span>(), <span class="fn">b</span>(), <span class="fn">c</span>());</div>
+  <div class="options">
+    <button class="opt" data-ans="012" onclick="answer(2, '012', this)">0 1 2</button>
+    <button class="opt" data-ans="333" onclick="answer(2, '333', this)">3 3 3</button>
+    <button class="opt" data-ans="222" onclick="answer(2, '222', this)">2 2 2</button>
+    <button class="opt" data-ans="uuu" onclick="answer(2, 'uuu', this)">undefined × 3</button>
+  </div>
+  <div class="explanation" id="exp-2">
+    <h4>정답: 3 3 3</h4>
+    <p><code>var</code>는 함수 스코프예요. 그래서 <code>i</code>는 <code>makeCounters</code> 전체에서 <em>하나뿐인</em> 변수고, 세 화살표 함수가 모두 <strong>같은 EnvRec의 같은 binding</strong>을 캡처해요. 루프가 끝나면 <code>i</code>는 <code>3</code>이 돼있고, 나중에 함수를 호출하면 셋 다 그 <code>3</code>을 봐요.</p>
+    <p><code>var</code>를 <code>let</code>으로 바꾸면 답이 <code>0 1 2</code>로 바뀌어요. <code>let</code>은 블록 스코프라서 매 반복마다 <strong>새로운 EnvRec</strong>이 생기고, 각 화살표 함수가 서로 다른 binding을 캡처하거든요. 14장 var 얘기랑 직결돼요.</p>
+  </div>
+</div>
+
+<!-- Q3: GC / Escape Analysis -->
+<div class="quiz-card" data-q="3">
+  <div class="quiz-num">Q3</div>
+  <div class="quiz-question">아래 코드에서 <code style="background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace">huge</code> 배열은 GC될까요?</div>
+  <div class="code-block"><span class="kw">function</span> <span class="fn">outer</span>() {
+  <span class="kw">const</span> huge = <span class="kw">new</span> <span class="fn">Array</span>(<span class="num">1_000_000</span>).<span class="fn">fill</span>(<span class="str">"data"</span>);
+  <span class="kw">const</span> small = <span class="num">42</span>;
+  <span class="kw">return</span> () =&gt; small;
+}
+<span class="kw">const</span> fn = <span class="fn">outer</span>();
+console.<span class="fn">log</span>(<span class="fn">fn</span>());</div>
+  <div class="options three">
+    <button class="opt text" data-ans="yes" onclick="answer(3, 'yes', this)">GC됨</button>
+    <button class="opt text" data-ans="no" onclick="answer(3, 'no', this)">안 됨</button>
+    <button class="opt text" data-ans="engine" onclick="answer(3, 'engine', this)">엔진에 따라 다름</button>
+  </div>
+  <div class="explanation" id="exp-3">
+    <h4>정답: 엔진에 따라 다름 (V8은 보통 GC됨)</h4>
+    <p>명세대로라면 <code>fn</code>이 outer의 EnvRec 전체를 잡고 있어서 <code>huge</code>도 살아남아야 해요. 하지만 V8 같은 현대 엔진은 <strong>Escape Analysis</strong>로 "이 클로저가 실제로 참조하는 변수는 <code>small</code>뿐"임을 알아채고, <code>huge</code>는 GC 대상으로 처리해요.</p>
+    <p>다만 <strong><code>eval</code>이 클로저 안에 있으면</strong> V8도 EnvRec 전체를 보존해야 해서 최적화가 깨져요. eval이 위험한 이유 중 하나가 이거예요 — 정적 분석을 망가뜨려요.</p>
+  </div>
+</div>
+
+<!-- Q4: var vs let globalThis -->
+<div class="quiz-card" data-q="4">
+  <div class="quiz-num">Q4</div>
+  <div class="quiz-question">아래 두 코드의 출력 차이는?</div>
+  <div class="side-by-side">
+    <div class="code-block"><span class="label">A (var)</span>
+<span class="kw">var</span> x = <span class="num">1</span>;
+console.<span class="fn">log</span>(globalThis.x);</div>
+    <div class="code-block"><span class="label">B (let)</span>
+<span class="kw">let</span> x = <span class="num">1</span>;
+console.<span class="fn">log</span>(globalThis.x);</div>
+  </div>
+  <div class="options">
+    <button class="opt text" data-ans="both1" onclick="answer(4, 'both1', this)">둘 다 1</button>
+    <button class="opt text" data-ans="bothu" onclick="answer(4, 'bothu', this)">둘 다 undefined</button>
+    <button class="opt text" data-ans="split" onclick="answer(4, 'split', this)">A=1, B=undefined</button>
+    <button class="opt text" data-ans="error" onclick="answer(4, 'error', this)">에러</button>
+  </div>
+  <div class="explanation" id="exp-4">
+    <h4>정답: A는 1, B는 undefined</h4>
+    <p><code>var</code>로 선언한 전역은 <strong>Object Environment Record</strong>(globalThis를 감싸는 환경)에 들어가요. 그래서 globalThis의 프로퍼티가 돼요. <code>let</code>/<code>const</code>로 선언한 전역은 별도의 <strong>Declarative Environment Record</strong>(Script Record)에 들어가요. 같은 "전역"이지만 들어가는 EnvRec이 달라요.</p>
+    <p>14장에서 <code>var</code>가 위험한 이유로 자주 나오는 얘기예요 — 의도치 않게 전역 객체를 오염시키니까. 13장 시스템 관점으로 보면, 이건 단순히 "오염"이 아니라 <strong>EnvRec이 두 종류</strong>라는 명세 차원의 구분이에요.</p>
+  </div>
+</div>
+
+<div class="footer-note">네 문제 풀어보고 본문으로 돌아가면 흐름이 더 잘 잡혀요.</div>
+
+<script>
+const answers = { 1: '2', 2: '333', 3: 'engine', 4: 'split' };
+const results = {};
+
+function answer(qNum, choice, btn) {
+  if (results[qNum] !== undefined) return; // 이미 답한 문제
+  const card = document.querySelector(`[data-q="${qNum}"]`);
+  const opts = card.querySelectorAll('.opt');
+  const correct = answers[qNum];
+
+  opts.forEach(o => {
+    o.disabled = true;
+    const ans = o.dataset.ans;
+    if (ans === correct) o.classList.add('correct');
+    else if (o === btn && choice !== correct) o.classList.add('wrong');
+  });
+
+  results[qNum] = (choice === correct);
+  updateProgress();
+  document.getElementById(`exp-${qNum}`).classList.add('show');
+  notifyResize();
+}
+
+function updateProgress() {
+  Object.keys(results).forEach(q => {
+    const dot = document.querySelector(`[data-dot="${q}"]`);
+    if (dot) {
+      dot.classList.add('done');
+      dot.classList.add(results[q] ? 'correct' : 'wrong');
+    }
+  });
+
+  if (Object.keys(results).length === 4) {
+    const score = Object.values(results).filter(Boolean).length;
+    const el = document.getElementById('score');
+    let msg;
+    if (score === 4) msg = '🎯 4/4 — 13장 시스템 모델이 머릿속에 잘 그려졌어요';
+    else if (score === 3) msg = `✨ ${score}/4 — 거의 다 잡았어요. 틀린 문제 설명 한 번 더 읽어봐요`;
+    else if (score === 2) msg = `📚 ${score}/4 — 절반은 잡았어요. EnvRec과 캡처 단원으로 한 번 더`;
+    else msg = `💪 ${score}/4 — 본문으로 돌아가서 천천히 다시 한 번`;
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+}
+
+function notifyResize() {
+  try {
+    const h = document.body.scrollHeight;
+    window.parent.postMessage({ type: 'demo-resize', height: h }, '*');
+  } catch (e) {}
+}
+
+window.addEventListener('load', notifyResize);
+</script>
+</body>
+</html>
