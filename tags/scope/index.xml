@@ -1,0 +1,534 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Scope</title><link>https://blog.girae.me/tags/scope/</link><description>Recent content in Scope on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Tue, 19 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/scope/index.xml" rel="self" type="application/rss+xml"/><item><title>ch13. 스코프 — 이름이 보이는 자리</title><link>https://blog.girae.me/learning-log/ch13-scope/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch13-scope/</guid><description>
+&lt;p>C로 처음 변수를 배웠을 때 신기했던 게 있어요. 컴파일이 끝나면 변수 이름이 &lt;strong>사라진다&lt;/strong>는 거였죠. &lt;code>int x = 1;&lt;/code> 이라고 적어도, 컴파일러를 통과한 뒤엔 &lt;code>x&lt;/code>라는 글자는 어디에도 없어요. 그냥 &lt;code>[rbp-4]&lt;/code> 같은 스택 오프셋만 남아요. 누군가 &amp;ldquo;x&amp;quot;를 찾으려고 해도 찾을 자리가 없어요 — 이미 번지수로 변환됐으니까.&lt;/p>
+&lt;p>JS로 넘어와서 처음 충격이었던 건 정반대였어요. &lt;code>let x = 1&lt;/code>이라고 쓰면, &lt;strong>런타임에 진짜로 &amp;lsquo;x&amp;rsquo;라는 이름표가 어딘가에 매달려요.&lt;/strong> 그리고 누군가 &lt;code>x&lt;/code>를 찾으면 시스템은 진짜로 자료구조를 거슬러 올라가며 그 이름표를 찾아요. 변수 조회가 &lt;em>동작&lt;/em>인 거예요. 인덱싱이 아니라.&lt;/p>
+&lt;p>이 글은 13장 스코프를 책의 흐름이 아니라 &lt;strong>시스템 레벨&lt;/strong>에서 다시 봅니다. 스코프가 &amp;ldquo;런타임 자료구조로 존재하는 언어&amp;quot;와 &amp;ldquo;컴파일러 안에서만 존재하는 언어&amp;quot;가 어떻게 다른지, 그리고 JS가 왜 전자가 될 수밖에 없었는지 — 이게 13장 본문의 모든 추상적인 문장(&lt;em>&amp;ldquo;스코프 체인을 따라 검색한다&amp;rdquo;&lt;/em> 같은) 뒤에 숨어있는 진짜 그림이에요.&lt;/p>
+&lt;hr>
+&lt;h2>1. C의 스코프 — 컴파일러의 일&lt;span class="hx:absolute hx:-mt-20" id="1-c의-스코프--컴파일러의-일">&lt;/span>
+&lt;a href="#1-c%ec%9d%98-%ec%8a%a4%ec%bd%94%ed%94%84--%ec%bb%b4%ed%8c%8c%ec%9d%bc%eb%9f%ac%ec%9d%98-%ec%9d%bc" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>C 프로그램은 변수에 대해 두 가지만 알면 돼요. &lt;strong>어느 주소에 있는가&lt;/strong>, 그리고 &lt;strong>몇 바이트인가&lt;/strong>. 그 외엔 아무것도 필요 없어요. 이름은? 컴파일러가 다 풀어줬으니까.&lt;/p>
+&lt;p>같은 개념의 코드를 두 언어로 비교하면 차이가 명확해져요. 탭을 눌러보세요.&lt;/p>
+&lt;div class="hextra-scrollbar hx:overflow-x-auto hx:overflow-y-hidden hx:overscroll-x-contain">
+&lt;div
+class="hx:mt-4 hx:flex hx:w-max hx:min-w-full hx:border-b hx:border-gray-200 hx:pb-px hx:dark:border-neutral-800"
+data-tab-group="C,JavaScript"
+>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-00-0"aria-selected="true"
+tabindex="0"
+data-state="selected"
+>C&lt;/button>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-00-1"
+>JavaScript&lt;/button>&lt;/div>
+&lt;/div>
+&lt;div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-00-0"
+role="tabpanel"tabindex="0"
+data-state="selected"
+>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="n">g&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">void&lt;/span> &lt;span class="nf">outer&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">y&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">printf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;%d&lt;/span>&lt;span class="se">\n&lt;/span>&lt;span class="s">&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">x&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">y&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">g&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>컴파일 후:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-asm" data-lang="asm">&lt;span class="line">&lt;span class="cl">&lt;span class="nf">mov&lt;/span> &lt;span class="no">eax&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">DWORD&lt;/span> &lt;span class="no">PTR&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="no">rbp-4&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">; x
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">add&lt;/span> &lt;span class="no">eax&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">DWORD&lt;/span> &lt;span class="no">PTR&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="no">rbp-8&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="c1">; y
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="nf">add&lt;/span> &lt;span class="no">eax&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="no">DWORD&lt;/span> &lt;span class="no">PTR&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="no">rip&lt;/span>&lt;span class="err">+&lt;/span>&lt;span class="no">g&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="err">;&lt;/span> &lt;span class="no">g&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>x&lt;/code>, &lt;code>y&lt;/code>, &lt;code>g&lt;/code>라는 글자는 어디에도 없어요. 그냥 주소만 박혀있죠.&lt;/p>
+&lt;/div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-00-1"
+role="tabpanel">&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">g&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">y&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">x&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">y&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">g&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>런타임에 EnvRec 객체:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>outerEnv { x: 1, [block]: { y: 2 } }
+↓ [[OuterEnv]]
+GlobalEnv { g: 10 }&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>x&lt;/code>, &lt;code>y&lt;/code>, &lt;code>g&lt;/code>가 진짜로 키-값 쌍으로 살아있어요.&lt;/p>
+&lt;/div>&lt;/div>
+&lt;p>C에선 컴파일러가 &lt;em>코드를 읽으면서&lt;/em> 어떤 이름이 어떤 메모리 위치인지를 결정하고, 결정된 결과(주소)만 어셈블리에 박아 넣어요. 런타임엔 &amp;ldquo;찾는다&amp;quot;는 동작이 없어요. 그냥 정해진 주소에서 읽을 뿐.&lt;/p>
+&lt;p>블록 스코프도 똑같아요. &lt;code>{ int y = 2; }&lt;/code>에서 &lt;code>y&lt;/code>는 그 블록 안에서만 보이는데, 이건 &lt;strong>컴파일러가 그 글자를 그 블록 바깥의 코드와 매칭시키지 않는다&lt;/strong>는 약속일 뿐이에요. 런타임엔 &lt;code>y&lt;/code>도 그냥 &lt;code>[rbp-8]&lt;/code>이고, 블록을 빠져나간다고 해서 그 메모리가 &amp;ldquo;삭제&amp;quot;되지도 않아요. 다른 변수가 같은 자리를 재활용할 뿐이죠.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">C에서 스코프는 컴파일러가 같은 이름의 중복 선언을 어떻게 풀지 결정하는 &lt;em>문법 규칙&lt;/em>이에요. 실행 중인 프로그램에는 스코프라는 게 &lt;strong>존재하지 않아요.&lt;/strong>&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;p>그래서 C는 클로저를 못 만들어요. 하지만 그 얘기는 잠시 뒤에.&lt;/p>
+&lt;hr>
+&lt;h2>2. JS의 스코프 — 진짜로 존재하는 이름표&lt;span class="hx:absolute hx:-mt-20" id="2-js의-스코프--진짜로-존재하는-이름표">&lt;/span>
+&lt;a href="#2-js%ec%9d%98-%ec%8a%a4%ec%bd%94%ed%94%84--%ec%a7%84%ec%a7%9c%eb%a1%9c-%ec%a1%b4%ec%9e%ac%ed%95%98%eb%8a%94-%ec%9d%b4%eb%a6%84%ed%91%9c" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>JS는 정반대 설계예요. 모든 스코프마다 &lt;strong>Environment Record&lt;/strong>라는 객체를 만들어요. 이름표를 보관하는 진짜 자료구조예요. 그리고 그 Record는 &lt;code>[[OuterEnv]]&lt;/code>라는 포인터로 부모 Record를 가리켜요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">g&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">10&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">function&lt;/span> &lt;span class="nx">inner&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">y&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">y&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="nx">g&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">inner&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>이 코드가 실행될 때 메모리는 대략 이런 모양이에요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>힙(Heap)
+┌──────────────────────────┐
+│ GlobalEnv │
+│ bindings: { g: 10 } │
+│ outer: null │
+└────────▲─────────────────┘
+│ [[OuterEnv]]
+┌────────┴─────────────────┐
+│ outer()의 Environment │
+│ bindings: { x: 1 } │
+│ outer: GlobalEnv │
+└────────▲─────────────────┘
+│ [[OuterEnv]]
+┌────────┴─────────────────┐
+│ inner()의 Environment │
+│ bindings: { y: 2 } │
+│ outer: outerEnv │
+└──────────────────────────┘&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>inner&lt;/code>에서 &lt;code>x&lt;/code>를 참조하면, 명세 알고리즘 &lt;code>ResolveBinding&lt;/code>이 돌아요. 한 단계씩 따라가볼게요.&lt;/p>
+&lt;div class="hextra-steps hx:ml-4 hx:mb-12 hx:ltr:border-l hx:rtl:border-r hx:border-gray-200 hx:ltr:pl-6 hx:rtl:pr-6 hx:dark:border-neutral-800 [counter-reset:step]">
+&lt;h3>inner의 EnvRec에서 &lt;code>x&lt;/code> 찾기&lt;span class="hx:absolute hx:-mt-20" id="inner의-envrec에서-x-찾기">&lt;/span>
+&lt;a href="#inner%ec%9d%98-envrec%ec%97%90%ec%84%9c-x-%ec%b0%be%ea%b8%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>bindings: { y: 2 }&lt;/code>만 있음. &lt;code>x&lt;/code>는 없음.
+→ 실패. &lt;code>[[OuterEnv]]&lt;/code>를 따라 한 칸 위로 이동.&lt;/p>
+&lt;h3>outer의 EnvRec 도착&lt;span class="hx:absolute hx:-mt-20" id="outer의-envrec-도착">&lt;/span>
+&lt;a href="#outer%ec%9d%98-envrec-%eb%8f%84%ec%b0%a9" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>&lt;code>bindings: { x: 1 }&lt;/code>을 들고 있음.&lt;/p>
+&lt;h3>outer의 EnvRec에서 &lt;code>x&lt;/code> 찾기&lt;span class="hx:absolute hx:-mt-20" id="outer의-envrec에서-x-찾기">&lt;/span>
+&lt;a href="#outer%ec%9d%98-envrec%ec%97%90%ec%84%9c-x-%ec%b0%be%ea%b8%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>발견! 값 &lt;code>1&lt;/code>을 반환.
+→ 검색 종료. 더 이상 walk하지 않음.&lt;/p>
+&lt;/div>
+&lt;p>이게 책에서 말하는 *&amp;ldquo;스코프 체인을 따라 검색한다&amp;rdquo;*의 실체예요. 비유가 아니라 &lt;strong>진짜로 포인터를 따라가는 동작&lt;/strong>이에요. C에선 컴파일 타임에 한 번 끝나는 작업이, JS에선 런타임마다 일어나요.&lt;/p>
+&lt;p>그리고 이게 중요한 차이로 이어져요 — JS는 변수가 &lt;strong>언제, 어디에 존재할지를 런타임에 결정&lt;/strong>할 수 있어요. &lt;code>eval&lt;/code>로 변수를 추가하거나, &lt;code>with&lt;/code>로 스코프 자체를 끼워넣거나, 클로저로 함수가 끝난 뒤에도 변수를 살려두거나. C에선 다 불가능한 일들이에요. 컴파일이 끝난 뒤엔 변수 이름이 사라졌으니까.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">JS에서 스코프는 &lt;em>문법 규칙&lt;/em>이 아니라 &lt;strong>런타임에 살아있는 자료구조&lt;/strong>예요. 변수 조회는 진짜로 자료구조를 걷는 동작이고, 그래서 동적인 변경도 가능해요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>3. 클로저는 왜 C에서 불가능한가&lt;span class="hx:absolute hx:-mt-20" id="3-클로저는-왜-c에서-불가능한가">&lt;/span>
+&lt;a href="#3-%ed%81%b4%eb%a1%9c%ec%a0%80%eb%8a%94-%ec%99%9c-c%ec%97%90%ec%84%9c-%eb%b6%88%ea%b0%80%eb%8a%a5%ed%95%9c%ea%b0%80" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>C 입장에서 보면 클로저는 마법처럼 보여요. 함수가 끝났는데 그 안의 변수가 어떻게 살아남지?&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span>&lt;span class="o">*&lt;/span> &lt;span class="nf">outer&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="n">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="o">&amp;amp;&lt;/span>&lt;span class="n">x&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// ⚠️ 위험: outer 끝나면 스택 회수됨
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kt">int&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">p&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nf">outer&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">printf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;%d&lt;/span>&lt;span class="se">\n&lt;/span>&lt;span class="s">&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">p&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// undefined behavior — 운 좋으면 1, 보통은 쓰레기값
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>outer&lt;/code>의 지역 변수 &lt;code>x&lt;/code>는 &lt;strong>스택&lt;/strong>에 있어요. 함수가 반환되면 스택 포인터가 원위치로 돌아가고, 그 메모리는 다음 함수 호출에 재사용돼요. &lt;code>&amp;amp;x&lt;/code>를 들고 있어봤자 가리키는 자리는 이미 남의 땅이에요.&lt;/p>
+&lt;p>JS에서 같은 패턴을 쓰면 멀쩡하게 동작해요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kd">function&lt;/span> &lt;span class="nx">inner&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">x&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// outer 끝나도 x를 본다
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span> &lt;span class="p">};&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">fn&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">fn&lt;/span>&lt;span class="p">());&lt;/span> &lt;span class="c1">// 1 — 정상
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>차이는 단 하나예요. &lt;strong>JS의 환경은 스택이 아니라 힙에 살아요.&lt;/strong> outer가 반환돼도 outer의 Environment Record는 사라지지 않아요. 왜냐면 inner 함수 객체가 &lt;code>[[Environment]]&lt;/code> 슬롯에 그 Record를 &lt;em>참조&lt;/em>하고 있거든요. GC 입장에선 &amp;ldquo;아직 누군가 잡고 있으니 못 치움&amp;rdquo; 상태예요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;pre>&lt;code>fn 함수 객체
+├─ code: &amp;#34;return x&amp;#34;
+└─ [[Environment]] ──┐
+▼
+┌──────────────────────┐
+│ outer의 Environment │ ← outer 호출은 끝났지만
+│ bindings: { x: 1 } │ 이 객체는 살아있음
+│ outer: GlobalEnv │
+└──────────────────────┘&lt;/code>&lt;/pre>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>fn&lt;/code>이 GC되기 전까진 이 Environment도 안 죽어요. 함수의 [[Environment]] 슬롯이 환경의 생명을 연장하는 거예요.&lt;/p>
+&lt;p>C가 클로저를 못 만드는 건 언어 설계자가 &amp;ldquo;안 만들었다&amp;quot;가 아니라, &lt;strong>로컬 변수를 스택에 둔다&lt;/strong>는 결정이 클로저를 원천적으로 불가능하게 만든 거예요. 클로저를 지원하려면 환경을 힙에 둬야 하고, 그러면 GC가 필요하고, 그러면 C가 추구한 &amp;ldquo;런타임 없는 시스템 언어&amp;quot;라는 정체성에서 멀어져요.&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">클로저는 마법이 아니라, 환경을 힙에 둔다는 설계의 자연스러운 귀결이에요. C는 그 길을 안 갔고, JS는 갔어요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>4. V8은 어떻게 둘의 좋은 점만 가져왔는가&lt;span class="hx:absolute hx:-mt-20" id="4-v8은-어떻게-둘의-좋은-점만-가져왔는가">&lt;/span>
+&lt;a href="#4-v8%ec%9d%80-%ec%96%b4%eb%96%bb%ea%b2%8c-%eb%91%98%ec%9d%98-%ec%a2%8b%ec%9d%80-%ec%a0%90%eb%a7%8c-%ea%b0%80%ec%a0%b8%ec%99%94%eb%8a%94%ea%b0%80" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기까지 보면 의문이 들어요. &amp;ldquo;JS는 매번 환경 체인을 걸어야 한다면, C보다 압도적으로 느려야 하는 거 아니야?&amp;rdquo; 명세대로라면 그래야 맞아요. 그런데 실제로는 안 그래요. V8 같은 현대 JS 엔진이 영리하게 둘의 좋은 점만 가져왔거든요.&lt;/p>
+&lt;h3>Escape Analysis — 잡히지 않는 변수는 그냥 스택에&lt;span class="hx:absolute hx:-mt-20" id="escape-analysis--잡히지-않는-변수는-그냥-스택에">&lt;/span>
+&lt;a href="#escape-analysis--%ec%9e%a1%ed%9e%88%ec%a7%80-%ec%95%8a%eb%8a%94-%eb%b3%80%ec%88%98%eb%8a%94-%ea%b7%b8%eb%83%a5-%ec%8a%a4%ed%83%9d%ec%97%90" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>V8은 코드를 보고 &amp;ldquo;이 변수가 클로저에 잡히는가?&amp;ldquo;를 분석해요.&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">fast&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// x는 어디로도 새 나가지 않음
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>이런 &lt;code>x&lt;/code>는 굳이 힙에 둘 이유가 없어요. V8은 이런 변수를 **그냥 스택(또는 레지스터)**에 둬요. C랑 똑같이.&lt;/p>
+&lt;p>반대로:&lt;/p>
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">captured&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">()&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="nx">x&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="c1">// x가 화살표 함수에 잡힘
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>이 &lt;code>x&lt;/code>는 함수 반환 후에도 살아남아야 하니까 &lt;strong>Context object&lt;/strong>라는 힙 객체에 모아둬요. 캡처되는 변수만 비용을 치르는 셈이에요.&lt;/p>
+&lt;h3>Inline Cache — 한 번 걸은 길은 외운다&lt;span class="hx:absolute hx:-mt-20" id="inline-cache--한-번-걸은-길은-외운다">&lt;/span>
+&lt;a href="#inline-cache--%ed%95%9c-%eb%b2%88-%ea%b1%b8%ec%9d%80-%ea%b8%b8%ec%9d%80-%ec%99%b8%ec%9a%b4%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>체인을 walk하는 동작도 매번 처음부터 하진 않아요. 같은 코드를 반복 실행할 때, V8은 &amp;ldquo;이 변수는 outer env에서 한 단계 위에 있더라&amp;quot;를 기억해둬요. 다음번엔 walk 없이 그 자리로 바로 점프해요. 캐시 미스가 나면 그때 다시 찾고요.&lt;/p>
+&lt;h3>TurboFan — 핫한 코드는 인라이닝&lt;span class="hx:absolute hx:-mt-20" id="turbofan--핫한-코드는-인라이닝">&lt;/span>
+&lt;a href="#turbofan--%ed%95%ab%ed%95%9c-%ec%bd%94%eb%93%9c%eb%8a%94-%ec%9d%b8%eb%9d%bc%ec%9d%b4%eb%8b%9d" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>자주 실행되는 코드는 JIT 컴파일러(TurboFan)가 인라이닝해서 스코프 체인 자체를 없애버려요. 결과적으로 C 컴파일러가 만든 어셈블리랑 거의 비슷한 코드가 나오기도 해요.&lt;/p>
+&lt;p>비유하자면 이래요.&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>단계&lt;/th>
+&lt;th>C&lt;/th>
+&lt;th>JS (명세)&lt;/th>
+&lt;th>V8 (실제)&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>비유&lt;/td>
+&lt;td>이름을 미리 번지수로 바꿔놓고 우편 배달&lt;/td>
+&lt;td>매번 이름표 보고 위층 사무실로 올라가 물어봄&lt;/td>
+&lt;td>두 번째부터는 단축번호 다이얼&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>비용&lt;/td>
+&lt;td>컴파일 타임에 1회&lt;/td>
+&lt;td>런타임에 매번&lt;/td>
+&lt;td>첫 1~2회만, 이후엔 거의 0&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">명세는 &amp;ldquo;체인을 걸어라&amp;quot;지만, 실제 엔진은 한 번 걸어본 길을 외워요. JS의 시맨틱은 동적이지만, 실행은 정적에 가깝게 최적화돼요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>5. 그래서 &amp;ldquo;위로 찾아간다&amp;quot;는 말의 진짜 의미&lt;span class="hx:absolute hx:-mt-20" id="5-그래서-위로-찾아간다는-말의-진짜-의미">&lt;/span>
+&lt;a href="#5-%ea%b7%b8%eb%9e%98%ec%84%9c-%ec%9c%84%eb%a1%9c-%ec%b0%be%ec%95%84%ea%b0%84%eb%8b%a4%eb%8a%94-%eb%a7%90%ec%9d%98-%ec%a7%84%ec%a7%9c-%ec%9d%98%eb%af%b8" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>다시 처음으로 돌아와봐요. 13장 본문에서 자주 나오는 *&amp;ldquo;스코프 체인을 따라 상위 스코프로 검색한다&amp;rdquo;*는 문장. 이게 무슨 뜻인지 이제 다르게 들릴 거예요.&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>C에서라면&lt;/strong> 이 문장은 &lt;em>컴파일러가 코드를 읽으며 한 일&lt;/em>이에요. 런타임엔 흔적이 없어요.&lt;/li>
+&lt;li>&lt;strong>JS에서는&lt;/strong> 이 문장이 &lt;em>실행 중인 프로그램이 진짜로 하는 일&lt;/em>이에요. 자료구조가 힙에 있고, 포인터를 따라 객체를 옮겨가며 이름을 찾아요.&lt;/li>
+&lt;/ul>
+&lt;p>이 차이가 13장 전체를 관통해요.&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>렉시컬 스코프&lt;/strong>가 가능한 건 환경 객체가 함수의 정의 시점에 결정되기 때문이에요. 호출 시점이 아니라.&lt;/li>
+&lt;li>&lt;strong>클로저&lt;/strong>가 가능한 건 환경이 힙에 있어서 함수 종료와 함께 안 죽기 때문이에요.&lt;/li>
+&lt;li>&lt;strong>스코프 체인 검색 비용&lt;/strong>이 의미를 갖는 건 진짜로 walk를 하기 때문이에요. C라면 비용이라는 개념 자체가 성립 안 해요.&lt;/li>
+&lt;li>&lt;strong>동적 변경&lt;/strong>(eval, with)이 가능한 것도 환경이 런타임 객체이기 때문이에요. 컴파일 후에도 만질 수 있으니까.&lt;/li>
+&lt;/ul>
+&lt;p>14장 &lt;em>전역 변수의 문제점&lt;/em>도 이 그림 위에 얹히면 자연스럽게 풀려요. 전역 변수가 비싼 건 스코프 체인의 종점에 있어서예요. 진짜로 walk하니까 종점까지 가는 게 길고, 캐시도 글로벌은 다른 코드가 자주 바꿔서 캐시 효과가 약하고. C라면 전역이든 지역이든 둘 다 직접 주소 접근이라 차이가 없죠.&lt;/p>
+&lt;hr>
+&lt;h2>흔한 오해 정리&lt;span class="hx:absolute hx:-mt-20" id="흔한-오해-정리">&lt;/span>
+&lt;a href="#%ed%9d%94%ed%95%9c-%ec%98%a4%ed%95%b4-%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">절반만 맞아요. 명세상 변수 조회는 런타임 동작이지만, V8은 실제로 코드를 JIT 컴파일해서 머신 코드로 실행해요. &amp;ldquo;스코프 체인을 매번 걷는다&amp;quot;는 것도 명세상 그렇다는 거지, 실제 실행은 인라인 캐시 덕분에 거의 직접 접근에 가까워요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">정확히는 &amp;ldquo;캡처된 변수는 함수가 살아있는 동안 살아남는다&amp;quot;예요. 의도한 캡처라면 누수가 아니라 &lt;em>정상 동작&lt;/em>이에요. 누수가 되는 건 &lt;em>의도하지 않은 캡처&lt;/em>가 일어났을 때, 예컨대 큰 객체를 무심코 클로저 안에서 참조해서 GC가 못 치우는 경우예요.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-amber-200 hx:bg-amber-100 hx:text-amber-900 hx:dark:border-amber-200/30 hx:dark:bg-amber-900/30 hx:dark:text-amber-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">명세상은 맞지만 V8에선 거의 안 느려요. 인라인 캐시가 첫 조회 이후의 비용을 거의 0으로 만들거든요. 진짜로 비용이 드는 건 &lt;strong>타입이나 모양이 자주 바뀌는 객체에 대한 프로퍼티 접근&lt;/strong>이에요. 이건 캐시가 매번 깨지니까.&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>직접 풀어보기 — 스코프 퀴즈&lt;span class="hx:absolute hx:-mt-20" id="직접-풀어보기--스코프-퀴즈">&lt;/span>
+&lt;a href="#%ec%a7%81%ec%a0%91-%ed%92%80%ec%96%b4%eb%b3%b4%ea%b8%b0--%ec%8a%a4%ec%bd%94%ed%94%84-%ed%80%b4%ec%a6%88" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>여기까지 읽었다면 한번 시험해봐요. 정답을 보기 전에 머릿속으로 먼저 답을 떠올려보세요.&lt;/p>
+&lt;h3>Q1. 다음 코드의 출력은?&lt;span class="hx:absolute hx:-mt-20" id="q1-다음-코드의-출력은">&lt;/span>
+&lt;a href="#q1-%eb%8b%a4%ec%9d%8c-%ec%bd%94%eb%93%9c%ec%9d%98-%ec%b6%9c%eb%a0%a5%ec%9d%80" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">function&lt;/span> &lt;span class="nx">inner&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">x&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">inner&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">fn&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">fn&lt;/span>&lt;span class="p">();&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;strong>보기&lt;/strong>: &lt;code>1&lt;/code> / &lt;code>2&lt;/code> / &lt;code>undefined&lt;/code> / &lt;code>ReferenceError&lt;/code>&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&lt;strong>정답: &lt;code>2&lt;/code>&lt;/strong>&lt;/p>
+&lt;p>&lt;code>inner&lt;/code>는 자기가 &lt;em>호출된 위치&lt;/em>가 아니라 &lt;em>정의된 위치&lt;/em>의 스코프를 봐요. 정의된 위치에선 &lt;code>outer&lt;/code>의 EnvRec이 상위 스코프고, 거기엔 &lt;code>x: 2&lt;/code>가 있어요. 전역 &lt;code>x: 1&lt;/code>은 더 위에 있지만, inner는 outer의 EnvRec에서 먼저 &lt;code>x&lt;/code>를 찾았기 때문에 거기서 검색을 멈춰요.&lt;/p>
+&lt;p>이게 &lt;strong>렉시컬 스코프&lt;/strong>의 정의예요. 동적 스코프 언어였다면 호출 시점의 환경을 봐서 &lt;code>1&lt;/code>이 나왔을 거예요.&lt;/p>
+&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>Q2. 다음 코드의 출력은?&lt;span class="hx:absolute hx:-mt-20" id="q2-다음-코드의-출력은">&lt;/span>
+&lt;a href="#q2-%eb%8b%a4%ec%9d%8c-%ec%bd%94%eb%93%9c%ec%9d%98-%ec%b6%9c%eb%a0%a5%ec%9d%80" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">makeCounters&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">counters&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[];&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">for&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="kd">var&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span> &lt;span class="o">&amp;lt;&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="o">++&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">counters&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">push&lt;/span>&lt;span class="p">(()&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="nx">i&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="nx">counters&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="nx">a&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">makeCounters&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">a&lt;/span>&lt;span class="p">(),&lt;/span> &lt;span class="nx">b&lt;/span>&lt;span class="p">(),&lt;/span> &lt;span class="nx">c&lt;/span>&lt;span class="p">());&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;strong>보기&lt;/strong>: &lt;code>0 1 2&lt;/code> / &lt;code>3 3 3&lt;/code> / &lt;code>2 2 2&lt;/code> / &lt;code>undefined undefined undefined&lt;/code>&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&lt;strong>정답: &lt;code>3 3 3&lt;/code>&lt;/strong>&lt;/p>
+&lt;p>&lt;code>var&lt;/code>는 함수 스코프예요. 그래서 &lt;code>i&lt;/code>는 &lt;code>makeCounters&lt;/code> 전체에서 &lt;em>하나뿐인&lt;/em> 변수고, 세 화살표 함수가 모두 &lt;strong>같은 EnvRec의 같은 binding&lt;/strong>을 캡처해요. 루프가 끝나면 &lt;code>i&lt;/code>는 &lt;code>3&lt;/code>이 돼있고, 나중에 함수를 호출하면 셋 다 그 &lt;code>3&lt;/code>을 봐요.&lt;/p>
+&lt;p>&lt;code>var&lt;/code>를 &lt;code>let&lt;/code>으로 바꾸면 답이 &lt;code>0 1 2&lt;/code>로 바뀌어요. &lt;code>let&lt;/code>은 블록 스코프라서 매 반복마다 &lt;strong>새로운 EnvRec&lt;/strong>이 생기고, 각 화살표 함수가 서로 다른 binding을 캡처하거든요. 14장 var 얘기랑 직결돼요.&lt;/p>
+&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>Q3. 다음 코드의 출력은?&lt;span class="hx:absolute hx:-mt-20" id="q3-다음-코드의-출력은">&lt;/span>
+&lt;a href="#q3-%eb%8b%a4%ec%9d%8c-%ec%bd%94%eb%93%9c%ec%9d%98-%ec%b6%9c%eb%a0%a5%ec%9d%80" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">huge&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">new&lt;/span> &lt;span class="nb">Array&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">1_000_000&lt;/span>&lt;span class="p">).&lt;/span>&lt;span class="nx">fill&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s2">&amp;#34;data&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">small&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">42&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="p">()&lt;/span> &lt;span class="p">=&amp;gt;&lt;/span> &lt;span class="nx">small&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">fn&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">fn&lt;/span>&lt;span class="p">());&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>huge&lt;/code> 배열은 GC될까요?&lt;/p>
+&lt;p>&lt;strong>보기&lt;/strong>: GC됨 / 안 됨 / 엔진에 따라 다름&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&lt;strong>정답: 엔진에 따라 다름 (V8은 보통 GC됨)&lt;/strong>&lt;/p>
+&lt;p>명세대로라면 &lt;code>fn&lt;/code>이 outer의 EnvRec 전체를 잡고 있어서 &lt;code>huge&lt;/code>도 살아남아야 해요. 하지만 V8 같은 현대 엔진은 &lt;strong>Escape Analysis&lt;/strong>로 &amp;ldquo;이 클로저가 실제로 참조하는 변수는 &lt;code>small&lt;/code>뿐&amp;quot;임을 알아채고, &lt;code>huge&lt;/code>는 GC 대상으로 처리해요.&lt;/p>
+&lt;p>다만 &lt;strong>&lt;code>eval&lt;/code>이 클로저 안에 있으면&lt;/strong> V8도 EnvRec 전체를 보존해야 해서 최적화가 깨져요. eval이 위험한 이유 중 하나가 이거예요 — 정적 분석을 망가뜨려요.&lt;/p>
+&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;h3>Q4. 다음 두 코드의 차이는?&lt;span class="hx:absolute hx:-mt-20" id="q4-다음-두-코드의-차이는">&lt;/span>
+&lt;a href="#q4-%eb%8b%a4%ec%9d%8c-%eb%91%90-%ec%bd%94%eb%93%9c%ec%9d%98-%ec%b0%a8%ec%9d%b4%eb%8a%94" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>
+&lt;div class="hextra-scrollbar hx:overflow-x-auto hx:overflow-y-hidden hx:overscroll-x-contain">
+&lt;div
+class="hx:mt-4 hx:flex hx:w-max hx:min-w-full hx:border-b hx:border-gray-200 hx:pb-px hx:dark:border-neutral-800"
+data-tab-group="A (var),B (let)"
+>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-12-0"aria-selected="true"
+tabindex="0"
+data-state="selected"
+>A (var)&lt;/button>&lt;button
+class="hextra-tabs-toggle hx:cursor-pointer hx:data-[state=selected]:border-primary-500 hx:data-[state=selected]:text-primary-600 hx:data-[state=selected]:dark:border-primary-500 hx:data-[state=selected]:dark:text-primary-600 hx:mr-2 hx:rounded-t hx:p-2 hx:font-medium hx:leading-5 hx:transition-colors hx:-mb-0.5 hx:select-none hx:border-b-2 hx:border-transparent hx:text-gray-600 hx:hover:border-gray-200 hx:hover:text-black hx:dark:text-gray-200 hx:dark:hover:border-neutral-800 hx:dark:hover:text-white"
+role="tab"
+type="button"
+aria-controls="tabs-panel-tabs-12-1"
+>B (let)&lt;/button>&lt;/div>
+&lt;/div>
+&lt;div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-12-0"
+role="tabpanel"tabindex="0"
+data-state="selected"
+>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">var&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">globalThis&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">x&lt;/span>&lt;span class="p">);&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;/div>&lt;div
+class="hextra-tabs-panel hx:rounded-sm hx:pt-6 hx:hidden hx:data-[state=selected]:block"
+id="tabs-panel-tabs-12-1"
+role="tabpanel">&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">let&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">globalThis&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">x&lt;/span>&lt;span class="p">);&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;/div>&lt;/div>
+&lt;p>&lt;strong>보기&lt;/strong>: 둘 다 &lt;code>1&lt;/code> / 둘 다 &lt;code>undefined&lt;/code> / A는 &lt;code>1&lt;/code>, B는 &lt;code>undefined&lt;/code> / 에러&lt;/p>
+&lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
+&lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
+&lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
+&lt;div class="hx:mt-6 hx:leading-7 hx:first:mt-0">&lt;p>&lt;strong>정답: A는 &lt;code>1&lt;/code>, B는 &lt;code>undefined&lt;/code>&lt;/strong>&lt;/p>
+&lt;p>&lt;code>var&lt;/code>로 선언한 전역은 &lt;strong>Object Environment Record&lt;/strong>(globalThis를 감싸는 환경)에 들어가요. 그래서 globalThis의 프로퍼티가 돼요. &lt;code>let&lt;/code>/&lt;code>const&lt;/code>로 선언한 전역은 별도의 &lt;strong>Declarative Environment Record&lt;/strong>(Script Record)에 들어가요. 같은 &amp;ldquo;전역&amp;quot;이지만 들어가는 EnvRec이 달라요.&lt;/p>
+&lt;p>14장에서 &lt;code>var&lt;/code>가 위험한 이유로 자주 나오는 얘기예요 — 의도치 않게 전역 객체를 오염시키니까. 13장 시스템 관점으로 보면, 이건 단순히 &amp;ldquo;오염&amp;quot;이 아니라 &lt;strong>EnvRec이 두 종류&lt;/strong>라는 명세 차원의 구분이에요.&lt;/p>
+&lt;/div>
+&lt;/div>
+&lt;/div>
+&lt;hr>
+&lt;h2>직접 실험해보기&lt;span class="hx:absolute hx:-mt-20" id="직접-실험해보기">&lt;/span>
+&lt;a href="#%ec%a7%81%ec%a0%91-%ec%8b%a4%ed%97%98%ed%95%b4%eb%b3%b4%ea%b8%b0" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>이 글에 등장한 코드는 &lt;code>examples/ch13/&lt;/code>에 있어요. 한번씩 실행해보면 머리에 그림이 더 잘 박혀요.&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>001-environment-walk.js&lt;/code> — 중첩 함수에서 환경 체인이 어떻게 동작하는지&lt;/li>
+&lt;li>&lt;code>002-closure-keeps-env.js&lt;/code> — 함수가 끝나도 환경이 살아남는 모습&lt;/li>
+&lt;li>&lt;code>003-no-closure-in-c.c&lt;/code> — C에서 같은 패턴을 시도하면 어떻게 깨지는지 (참고용)&lt;/li>
+&lt;/ul>
+&lt;hr>
+&lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
+&lt;a href="#%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>C에서 스코프는 &lt;strong>컴파일러의 기억&lt;/strong>이고, JS에서 스코프는 &lt;strong>런타임의 자료구조&lt;/strong>다.&lt;/li>
+&lt;li>JS의 모든 함수는 자기가 정의된 시점의 환경을 &lt;code>[[Environment]]&lt;/code> 슬롯에 들고 다니고, 이게 클로저의 정체다.&lt;/li>
+&lt;li>환경이 힙에 있다는 한 가지 결정이 — 렉시컬 스코프, 클로저, 동적 변경, 검색 비용 — 13장의 거의 모든 주제를 결정한다.&lt;/li>
+&lt;li>V8은 명세의 동적 시맨틱을 유지하면서도 Escape Analysis와 인라인 캐시로 C에 가까운 성능을 낸다. 시맨틱과 구현은 별개다.&lt;/li>
+&lt;/ul>
+&lt;p>다음 글(ch14)에서는 이 그림 위에서 &lt;em>전역 변수가 왜 위험한가&lt;/em>를 봅니다. &amp;ldquo;위로 찾아간다&amp;quot;의 종점이 왜 비싼지가 자연스럽게 이어져요.&lt;/p></description></item></channel></rss>
