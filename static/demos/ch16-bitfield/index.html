@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비트필드 — 정상은 000</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --green: #10b981;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+    --off: #cbd5e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-secondary: #1e293b;
+      --bg-card: #0f172a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --code-bg: #0f172a;
+      --off: #475569;
+    }
+  }
+
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: transparent; color: var(--text-primary); line-height: 1.5; }
+  .demo-container { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-secondary); }
+  .demo-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .demo-header h2 { font-size: 15px; font-weight: 700; }
+  .demo-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .demo-body { padding: 24px 20px 28px; }
+
+  /* 토글 3개 */
+  .toggles { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+  .toggle-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 14px;
+  }
+  .toggle-row .info { flex: 1; min-width: 0; }
+  .toggle-row .attr {
+    font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; font-weight: 700;
+    color: var(--accent);
+  }
+  .toggle-row .state { font-size: 11.5px; color: var(--text-secondary); margin-top: 1px; }
+
+  .switch { position: relative; width: 52px; height: 28px; flex-shrink: 0; cursor: pointer; }
+  .switch input { display: none; }
+  .track {
+    position: absolute; inset: 0; border-radius: 20px;
+    background: var(--accent); transition: background 0.2s;
+  }
+  .switch input:not(:checked) + .track { background: var(--off); }
+  .knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .switch input:checked + .track + .knob { transform: translateX(24px); }
+
+  .toggle-row.green { --accent: var(--green); }
+  .toggle-row.blue { --accent: var(--blue); }
+  .toggle-row.amber { --accent: var(--amber); }
+
+  /* 비트필드 표시 */
+  .bitfield {
+    background: var(--code-bg);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .bits { display: flex; gap: 12px; }
+  .bit-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bit-box {
+    width: 52px; height: 52px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "SF Mono", monospace; font-size: 24px; font-weight: 800;
+    color: #fff; background: #334155; transition: background 0.2s, transform 0.2s;
+  }
+  .bit-box.on { transform: translateY(-2px); }
+  .bit-cell.green .bit-box.on { background: var(--green); }
+  .bit-cell.blue .bit-box.on { background: var(--blue); }
+  .bit-cell.amber .bit-box.on { background: var(--amber); }
+  .bit-name { font-family: "SF Mono", monospace; font-size: 9.5px; color: #94a3b8; white-space: nowrap; }
+
+  .result-line {
+    font-family: "SF Mono", monospace; font-size: 13px; color: var(--code-text);
+    border-top: 1px solid #334155; padding-top: 12px; width: 100%; text-align: center;
+  }
+  .result-line .hl { color: #fcd34d; font-weight: 700; }
+
+  .verdict {
+    margin-top: 18px; padding: 14px 16px; border-radius: 10px;
+    font-size: 12.5px; line-height: 1.7; text-align: center;
+    transition: background 0.2s;
+  }
+  .verdict.normal { background: rgba(16,185,129,0.1); color: var(--text-secondary); }
+  .verdict.abnormal { background: rgba(245,158,11,0.1); color: var(--text-secondary); }
+  .verdict strong { color: var(--text-primary); }
+
+  .reset {
+    display: block; margin: 14px auto 0;
+    background: none; border: 1px solid var(--border); color: var(--text-secondary);
+    font-size: 12px; padding: 6px 16px; border-radius: 7px; cursor: pointer;
+  }
+  .reset:hover { border-color: var(--teal); color: var(--teal); }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>그림 4 · 정상이 000인 이유</h2>
+    <p>꼬리표를 "금지"로 바꿔보세요. 평범한 상태에선 모든 비트가 0이다.</p>
+  </div>
+  <div class="demo-body">
+    <div class="toggles">
+      <div class="toggle-row green">
+        <div class="info">
+          <div class="attr">writable</div>
+          <div class="state" id="state-w">값을 바꿀 수 있음 (허용)</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tg-w" checked>
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
+      <div class="toggle-row blue">
+        <div class="info">
+          <div class="attr">enumerable</div>
+          <div class="state" id="state-e">목록에 나옴 (허용)</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tg-e" checked>
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
+      <div class="toggle-row amber">
+        <div class="info">
+          <div class="attr">configurable</div>
+          <div class="state" id="state-c">지우거나 재설정 가능 (허용)</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tg-c" checked>
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="bitfield">
+      <div class="bits">
+        <div class="bit-cell amber">
+          <div class="bit-box" id="bit-c">0</div>
+          <div class="bit-name">DONT_DELETE</div>
+        </div>
+        <div class="bit-cell blue">
+          <div class="bit-box" id="bit-e">0</div>
+          <div class="bit-name">DONT_ENUM</div>
+        </div>
+        <div class="bit-cell green">
+          <div class="bit-box" id="bit-w">0</div>
+          <div class="bit-name">READ_ONLY</div>
+        </div>
+      </div>
+      <div class="result-line">attributes = <span class="hl" id="bin">0b000</span> &nbsp;→&nbsp; <span id="enumname">NONE</span></div>
+    </div>
+
+    <div class="verdict normal" id="verdict"></div>
+    <button class="reset" id="reset">↺ 전부 정상으로</button>
+  </div>
+</div>
+
+<script>
+  const tg = { w: document.getElementById('tg-w'), e: document.getElementById('tg-e'), c: document.getElementById('tg-c') };
+  const bitBox = { w: document.getElementById('bit-w'), e: document.getElementById('bit-e'), c: document.getElementById('bit-c') };
+  const stateEl = { w: document.getElementById('state-w'), e: document.getElementById('state-e'), c: document.getElementById('state-c') };
+  const bin = document.getElementById('bin');
+  const enumname = document.getElementById('enumname');
+  const verdict = document.getElementById('verdict');
+
+  const stateText = {
+    w: { on: '값을 바꿀 수 있음 (허용)', off: '읽기 전용 — READ_ONLY 켜짐' },
+    e: { on: '목록에 나옴 (허용)', off: '숨김 — DONT_ENUM 켜짐' },
+    c: { on: '지우거나 재설정 가능 (허용)', off: '잠김 — DONT_DELETE 켜짐' },
+  };
+
+  function update() {
+    // checked(허용/정상) → 비트 0,  unchecked(금지) → 비트 1
+    const bw = tg.w.checked ? 0 : 1;
+    const be = tg.e.checked ? 0 : 1;
+    const bc = tg.c.checked ? 0 : 1;
+
+    [['w', bw], ['e', be], ['c', bc]].forEach(([k, b]) => {
+      bitBox[k].textContent = b;
+      bitBox[k].classList.toggle('on', b === 1);
+      stateEl[k].textContent = b === 0 ? stateText[k].on : stateText[k].off;
+    });
+
+    const val = bw * 1 + be * 2 + bc * 4;
+    bin.textContent = '0b' + bc + be + bw;
+
+    const names = [];
+    if (bw) names.push('READ_ONLY');
+    if (be) names.push('DONT_ENUM');
+    if (bc) names.push('DONT_DELETE');
+    enumname.textContent = names.length ? names.join(' | ') + ` (${val})` : 'NONE';
+
+    if (val === 0) {
+      verdict.className = 'verdict normal';
+      verdict.innerHTML = '<strong>평범한 프로퍼티 = 000.</strong><br>메모리를 0으로 깐 순간 이 상태가 완성된다. 꼬리표를 <strong>쓸 필요조차 없다.</strong> 세상 대부분의 프로퍼티가 바로 이 상태다.';
+    } else {
+      verdict.className = 'verdict abnormal';
+      verdict.innerHTML = `<strong>예외 상태.</strong><br>평범하지 않은 꼬리표가 있을 때만 비트를 <strong>켠다(1).</strong> "금지"에만 표식을 다는 부정형 인코딩이다.`;
+    }
+    notifyHeight();
+  }
+
+  Object.values(tg).forEach(t => t.addEventListener('change', update));
+  document.getElementById('reset').addEventListener('click', () => {
+    tg.w.checked = tg.e.checked = tg.c.checked = true;
+    update();
+  });
+
+  function notifyHeight() {
+    window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+  }
+  window.addEventListener('resize', notifyHeight);
+  window.addEventListener('load', notifyHeight);
+  update();
+  setTimeout(notifyHeight, 100);
+</script>
+</body>
+</html>

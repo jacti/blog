@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데이터 프로퍼티 vs 접근자 프로퍼티</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --green: #10b981;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+    --purple: #a855f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-secondary: #1e293b;
+      --bg-card: #0f172a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: transparent; color: var(--text-primary); line-height: 1.5;
+  }
+  .demo-container { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-secondary); }
+  .demo-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .demo-header h2 { font-size: 15px; font-weight: 700; }
+  .demo-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .demo-body { padding: 26px 20px 30px; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 620px) { .compare { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-title {
+    padding: 12px 16px;
+    font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .badge {
+    font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    font-family: system-ui;
+  }
+  .card.data .card-title { color: var(--teal); }
+  .card.data .badge { background: rgba(20,184,166,0.12); color: var(--teal); }
+  .card.accessor .card-title { color: var(--purple); }
+  .card.accessor .badge { background: rgba(168,85,247,0.12); color: var(--purple); }
+
+  .card-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+  .slot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    background: var(--slot-tint);
+    border-left: 3px solid var(--slot-color);
+  }
+  .slot .nm {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12.5px; font-weight: 700; color: var(--slot-color);
+    min-width: 92px;
+  }
+  .slot .ds { font-size: 11.5px; color: var(--text-secondary); }
+
+  .slot.teal   { --slot-color: var(--teal);   --slot-tint: rgba(20,184,166,0.08); }
+  .slot.green  { --slot-color: var(--green);  --slot-tint: rgba(16,185,129,0.08); }
+  .slot.purple { --slot-color: var(--purple); --slot-tint: rgba(168,85,247,0.08); }
+  .slot.blue   { --slot-color: var(--blue);   --slot-tint: rgba(59,130,246,0.08); }
+  .slot.amber  { --slot-color: var(--amber);  --slot-tint: rgba(245,158,11,0.08); }
+
+  .shared-divider {
+    display: flex; align-items: center; gap: 8px;
+    margin: 4px 2px 0; font-size: 10.5px; color: var(--text-muted);
+    font-weight: 600;
+  }
+  .shared-divider::before, .shared-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .insight {
+    margin-top: 20px; padding: 13px 16px;
+    background: rgba(59,130,246,0.07); border-radius: 10px;
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.7;
+  }
+  .insight strong { color: var(--text-primary); }
+  .insight code {
+    font-family: "SF Mono", "Fira Code", monospace; font-size: 11.5px;
+    background: var(--bg-secondary); padding: 1px 6px; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>그림 2 · 데이터 프로퍼티 vs 접근자 프로퍼티</h2>
+    <p>앞 두 칸만 갈리고, 뒤 두 칸(enumerable · configurable)은 양쪽이 똑같이 가진다.</p>
+  </div>
+  <div class="demo-body">
+    <div class="compare">
+      <!-- 데이터 프로퍼티 -->
+      <div class="card data">
+        <div class="card-title">데이터 프로퍼티 <span class="badge">값을 저장한다</span></div>
+        <div class="card-body">
+          <div class="slot teal"><span class="nm">value</span><span class="ds">값 그 자체</span></div>
+          <div class="slot green"><span class="nm">writable</span><span class="ds">값을 바꿀 수 있나</span></div>
+          <div class="shared-divider">공통 꼬리표</div>
+          <div class="slot blue"><span class="nm">enumerable</span><span class="ds">목록에 나오나</span></div>
+          <div class="slot amber"><span class="nm">configurable</span><span class="ds">잠겼나</span></div>
+        </div>
+      </div>
+
+      <!-- 접근자 프로퍼티 -->
+      <div class="card accessor">
+        <div class="card-title">접근자 프로퍼티 <span class="badge">동작으로 가로챈다</span></div>
+        <div class="card-body">
+          <div class="slot purple"><span class="nm">get</span><span class="ds">읽을 때 실행할 함수</span></div>
+          <div class="slot purple"><span class="nm">set</span><span class="ds">쓸 때 실행할 함수</span></div>
+          <div class="shared-divider">공통 꼬리표</div>
+          <div class="slot blue"><span class="nm">enumerable</span><span class="ds">목록에 나오나</span></div>
+          <div class="slot amber"><span class="nm">configurable</span><span class="ds">잠겼나</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <strong>왜 둘은 합쳐질 수 없을까?</strong> 같은 프로퍼티가 <code>value</code>(저장된 값)와 <code>get</code>(계산하는 함수)을 동시에 가질 수는 없어요. <code>obj.x</code>를 읽을 때 저장된 값을 줄지, 함수를 실행할지는 <strong>둘 중 하나</strong>여야 하니까요.
+    </div>
+  </div>
+</div>
+
+<script>
+  function notifyHeight() {
+    window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+  }
+  window.addEventListener('resize', notifyHeight);
+  window.addEventListener('load', notifyHeight);
+  setTimeout(notifyHeight, 100);
+</script>
+</body>
+</html>
