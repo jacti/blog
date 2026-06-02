@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V8이 객체를 담는 그릇들</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --green: #10b981;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+    --purple: #a855f7;
+    --line: #cbd5e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-secondary: #1e293b;
+      --bg-card: #0f172a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --line: #475569;
+    }
+  }
+
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: transparent; color: var(--text-primary); line-height: 1.5; }
+  .demo-container { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-secondary); }
+  .demo-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .demo-header h2 { font-size: 15px; font-weight: 700; }
+  .demo-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .demo-body { padding: 24px 18px 28px; }
+
+  .map { display: flex; flex-direction: column; gap: 0; }
+
+  .node {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 11px;
+    padding: 12px 15px; position: relative;
+  }
+  .node-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .node-head .chip { width: 9px; height: 9px; border-radius: 3px; background: var(--c); }
+  .node-head .name { font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; font-weight: 700; color: var(--c); }
+  .node-head .role { font-size: 10.5px; color: var(--text-muted); margin-left: auto; }
+  .node .fields { display: flex; flex-wrap: wrap; gap: 6px; }
+  .field {
+    font-family: "SF Mono", monospace; font-size: 10.5px;
+    background: var(--bg-secondary); color: var(--text-secondary);
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .field.ptr { color: var(--c); font-weight: 600; }
+
+  .node.jsobject { --c: var(--teal); }
+  .node.hiddenclass { --c: var(--green); }
+  .node.descarray { --c: var(--amber); }
+  .node.details { --c: var(--amber); }
+  .node.accessor { --c: var(--purple); border-style: dashed; }
+  .node.elements { --c: var(--blue); }
+
+  .connect {
+    align-self: flex-start;
+    margin-left: 28px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-muted); font-size: 10.5px;
+    padding: 3px 0;
+  }
+  .connect .v-line { width: 2px; height: 14px; background: var(--line); margin-left: 6px; position: relative; }
+  .connect .v-line::after { content: "▼"; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); font-size: 8px; color: var(--line); }
+  .connect .lbl { font-family: "SF Mono", monospace; }
+
+  .indent { margin-left: 26px; }
+
+  .branch {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px;
+  }
+  @media (max-width: 560px) { .branch { grid-template-columns: 1fr; } }
+
+  .side-note { font-size: 10px; color: var(--text-muted); margin-top: 8px; font-style: italic; }
+
+  .caption { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 22px; line-height: 1.7; }
+  .caption strong { color: var(--text-primary); }
+  .caption code { font-family: "SF Mono", monospace; font-size: 11px; background: var(--bg-card); padding: 1px 6px; border-radius: 5px; }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>그림 6 · V8이 객체를 담는 그릇들</h2>
+    <p>const o = { x: 1 } 한 줄 뒤에서 조립되는 V8 내부 구조의 전경.</p>
+  </div>
+  <div class="demo-body">
+    <div class="map">
+
+      <!-- JSObject -->
+      <div class="node jsobject">
+        <div class="node-head"><span class="chip"></span><span class="name">JSObject</span><span class="role">실제 인스턴스</span></div>
+        <div class="fields">
+          <span class="field">[[인라인 값]] x: 1</span>
+          <span class="field ptr">map ▸</span>
+          <span class="field ptr">properties ▸</span>
+          <span class="field ptr">elements ▸</span>
+        </div>
+      </div>
+
+      <div class="connect"><span class="v-line"></span><span class="lbl">map ▸ "내 모양은?"</span></div>
+
+      <!-- Map (Hidden Class) -->
+      <div class="indent">
+        <div class="node hiddenclass">
+          <div class="node-head"><span class="chip"></span><span class="name">Map (히든클래스)</span><span class="role">모양 정보 · 공유됨</span></div>
+          <div class="fields">
+            <span class="field ptr">descriptors ▸</span>
+            <span class="field">transition (모양 변화 경로)</span>
+            <span class="field">is_extensible</span>
+          </div>
+        </div>
+
+        <div class="connect"><span class="v-line"></span><span class="lbl">descriptors ▸ "꼬리표 묶음"</span></div>
+
+        <!-- DescriptorArray -->
+        <div class="indent">
+          <div class="node descarray">
+            <div class="node-head"><span class="chip"></span><span class="name">DescriptorArray</span><span class="role">프로퍼티별 꼬리표</span></div>
+            <div class="fields">
+              <span class="field">key: "x"</span>
+              <span class="field ptr">PropertyDetails ▾</span>
+            </div>
+
+            <div class="branch">
+              <div class="node details">
+                <div class="node-head"><span class="chip"></span><span class="name">PropertyDetails</span></div>
+                <div class="fields">
+                  <span class="field">kind: data│accessor</span>
+                  <span class="field">attrs: 000</span>
+                </div>
+                <div class="side-note">압축된 비트필드 (그림 4)</div>
+              </div>
+              <div class="node accessor">
+                <div class="node-head"><span class="chip"></span><span class="name">AccessorPair</span></div>
+                <div class="fields">
+                  <span class="field">get ▸ fn</span>
+                  <span class="field">set ▸ fn</span>
+                </div>
+                <div class="side-note">접근자일 때 값 자리에</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- elements (별도 가지) -->
+      <div class="connect"><span class="v-line"></span><span class="lbl">elements ▸ "숫자 키는 따로"</span></div>
+      <div class="indent">
+        <div class="node elements">
+          <div class="node-head"><span class="chip"></span><span class="name">elements</span><span class="role">인덱스 프로퍼티</span></div>
+          <div class="fields">
+            <span class="field">[0]</span><span class="field">[1]</span><span class="field">[2]</span>
+            <span class="field">arr[0] 같은 숫자 키 저장소</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="caption">
+      우리가 <code>obj.x = 1</code> 한 줄을 쓸 때, V8은 이 그릇들을 조용히 조립한다.<br>
+      <strong>값은 JSObject에, 꼬리표는 Map → DescriptorArray에</strong> — 끝까지 분리돼 있다.
+    </div>
+  </div>
+</div>
+
+<script>
+  function notifyHeight() {
+    window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+  }
+  window.addEventListener('resize', notifyHeight);
+  window.addEventListener('load', notifyHeight);
+  setTimeout(notifyHeight, 100);
+</script>
+</body>
+</html>

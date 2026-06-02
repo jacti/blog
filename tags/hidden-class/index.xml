@@ -674,6 +674,7 @@ title="Copy code"
 &lt;li>&lt;code>configurable&lt;/code> — 설정 잠금 여부 (&amp;ldquo;내 꼬리표들 바꾸거나 날 지워도 돼?&amp;rdquo;)&lt;/li>
 &lt;/ul>
 &lt;p>이 네 꼬리표를 한데 묶어서 **프로퍼티 어트리뷰트(property attribute)**라고 불러요. &amp;ldquo;어트리뷰트 = 속성&amp;rdquo;, 그러니까 &lt;strong>프로퍼티가 가진 속성&lt;/strong>인 거죠. 제목이 외친 &amp;ldquo;이 값을 변경 불가능하게 해줘&amp;quot;라는 요구는, 결국 &lt;code>writable&lt;/code> 꼬리표를 끄는 것 하나로 풀려요.&lt;/p>
+&lt;iframe id="ch16-fig1" src="https://blog.girae.me/demos/ch16-property-tags/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="값에 매달린 꼬리표" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;p>ECMAScript 스펙은 이 꼬리표들을 &lt;code>[[Value]]&lt;/code>, &lt;code>[[Writable]]&lt;/code>, &lt;code>[[Enumerable]]&lt;/code>, &lt;code>[[Configurable]]&lt;/code>처럼 이중 대괄호로 적어요. **&amp;ldquo;엔진 내부에만 존재하는, 우리가 직접 못 만지는 것&amp;rdquo;**이라는 표식이에요.&lt;/p>
 &lt;hr>
 &lt;h2>2. 값 말고 동작을 달라 — 또 다른 종류의 꼬리표&lt;span class="hx:absolute hx:-mt-20" id="2-값-말고-동작을-달라--또-다른-종류의-꼬리표">&lt;/span>
@@ -683,6 +684,7 @@ title="Copy code"
 &lt;li>&lt;code>value&lt;/code> / &lt;code>writable&lt;/code> 을 가진 프로퍼티 → &lt;strong>데이터 프로퍼티&lt;/strong> (값을 직접 저장한다)&lt;/li>
 &lt;li>&lt;code>get&lt;/code> / &lt;code>set&lt;/code> 을 가진 프로퍼티 → &lt;strong>접근자 프로퍼티&lt;/strong> (값을 함수로 가로챈다)&lt;/li>
 &lt;/ul>
+&lt;iframe id="ch16-fig2" src="https://blog.girae.me/demos/ch16-data-vs-accessor/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="데이터 vs 접근자 프로퍼티" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;div class="hx:overflow-x-auto hx:mt-6 hx:flex hx:rounded-lg hx:border hx:py-2 hx:ltr:pr-4 hx:rtl:pl-4 hx:contrast-more:border-current hx:contrast-more:dark:border-current hx:border-blue-200 hx:bg-blue-100 hx:text-blue-900 hx:dark:border-blue-200/30 hx:dark:bg-blue-900/30 hx:dark:text-blue-200">
 &lt;div class="hx:ltr:pl-3 hx:ltr:pr-2 hx:rtl:pr-3 hx:rtl:pl-2">&lt;svg height=1.2em class="hx:inline-block hx:align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">&lt;path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>&lt;/svg>&lt;/div>
 &lt;div class="hx:w-full hx:min-w-0 hx:leading-7">
@@ -697,6 +699,7 @@ title="Copy code"
 &lt;p>순진하게 가면, 프로퍼티마다 값 옆에 꼬리표 4개를 그대로 붙여두면 돼요. 하지만 V8은 두 번 영리하게 굴어요.&lt;/p>
 &lt;p>&lt;strong>첫째, 값과 꼬리표를 분리한다.&lt;/strong>
 값(&lt;code>'기래'&lt;/code>)은 객체 본체에 그대로 두지만, 꼬리표들은 &lt;strong>객체 바깥의 별도 공간&lt;/strong>에 모아둬요. 왜 분리하는지는 다음 장에서 드러나요 — 일단은 &amp;ldquo;값과 꼬리표가 다른 곳에 산다&amp;quot;만 기억하면 돼요.&lt;/p>
+&lt;iframe id="ch16-fig3" src="https://blog.girae.me/demos/ch16-value-tag-split/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="값과 꼬리표의 분리 저장" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;p>&lt;strong>둘째, 꼬리표를 통째로 압축한다.&lt;/strong>
 &lt;code>writable&lt;/code>, &lt;code>enumerable&lt;/code>, &lt;code>configurable&lt;/code>은 결국 켜짐/꺼짐(true/false)이에요. 이런 걸 일일이 별도의 boolean 변수로 두면 자리만 차지하죠. 그래서 V8은 이 꼬리표들을 &lt;strong>정수 하나 안의 몇 개의 비트&lt;/strong>로 욱여넣어요. 검사도 비트 연산 한 번이면 끝나고, 메모리도 거의 안 먹어요. 이 압축된 꼬리표 묶음을 V8은 &lt;code>PropertyDetails&lt;/code>라고 불러요.&lt;/p>
 &lt;p>그런데 이 압축에는 한 가지 &lt;strong>변태적인 디테일&lt;/strong>이 숨어 있어요. &amp;ldquo;정상 상태&amp;quot;를 비트로 표시할 때, 보통이라면 &amp;ldquo;정상이면 1&amp;quot;로 둘 것 같죠? V8은 정반대로 갔어요. **정상이 &lt;code>000&lt;/code>**이에요. 왜 굳이 그랬는지는, 이 글의 마지막에서 이야기할게요. (지금은 떡밥만.)&lt;/p>
@@ -726,6 +729,7 @@ title="Copy code"
 &lt;/blockquote>
 &lt;p>이 아이디어가 바로 **히든클래스(hidden class)**예요. V8 내부에서는 &lt;code>Map&lt;/code>이라고 불러요(우리가 아는 &lt;code>Map&lt;/code> 자료구조랑은 다른, 동음이의어예요).&lt;/p>
 &lt;p>3장에서 &amp;ldquo;값과 꼬리표를 왜 분리하지?&amp;ldquo;라고 떡밥을 던졌었죠. 바로 이걸 위해서예요. 꼬리표 묶음을 객체 본체가 아니라 &lt;strong>히든클래스에 모아두고, 같은 모양의 객체들이 그 히든클래스 하나를 공유&lt;/strong>하는 거예요. 그래야 꼬리표가 한 벌만 존재할 수 있으니까요.&lt;/p>
+&lt;iframe id="ch16-fig5" src="https://blog.girae.me/demos/ch16-hidden-class/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="히든클래스 공유" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;h3>모양이 바뀌면?&lt;span class="hx:absolute hx:-mt-20" id="모양이-바뀌면">&lt;/span>
 &lt;a href="#%eb%aa%a8%ec%96%91%ec%9d%b4-%eb%b0%94%eb%80%8c%eb%a9%b4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;p>객체에 프로퍼티를 새로 추가하면 &amp;ldquo;모양&amp;quot;이 바뀌죠. 그러면 V8은 &lt;strong>새 히든클래스로 갈아타요(transition).&lt;/strong>&lt;/p>
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
@@ -769,6 +773,7 @@ title="Copy code"
 메모리는 새로 할당하면 어차피 &lt;code>0&lt;/code>으로 깔려요. &lt;code>0&lt;/code>이 곧 정상 상태라면, 평범한 프로퍼티를 만들 때 꼬리표를 &lt;strong>쓸 필요조차 없어요.&lt;/strong> 메모리를 0으로 미는 순간 이미 &amp;ldquo;변경 가능 · 목록에 나옴 · 잠기지 않음&amp;quot;이 완성돼 있는 거예요. 그리고 세상 대부분의 프로퍼티는 이 평범한 상태죠. &lt;strong>압도적 다수가 공짜로 처리되는&lt;/strong> 거예요.&lt;/div>
 &lt;/div>
 &lt;/div>
+&lt;iframe id="ch16-fig4" src="https://blog.girae.me/demos/ch16-bitfield/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="정상이 000인 이유" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;blockquote>
 &lt;p>&amp;ldquo;예외에만 표식을 단다.&amp;rdquo; 다수를 위한 비용을 0으로 만드는, 구현자의 집착이 담긴 선택이다.&lt;/p>
 &lt;/blockquote>
@@ -783,6 +788,7 @@ title="Copy code"
 &lt;li>&lt;strong>AccessorPair&lt;/strong> — 접근자 프로퍼티일 때, 값 자리에 들어앉는 &lt;code>get&lt;/code>/&lt;code>set&lt;/code> 함수 쌍.&lt;/li>
 &lt;li>&lt;strong>elements&lt;/strong> — &lt;code>arr[0]&lt;/code> 같은 인덱스(숫자 키) 프로퍼티는 여기 따로 저장된다.&lt;/li>
 &lt;/ul>
+&lt;iframe id="ch16-fig6" src="https://blog.girae.me/demos/ch16-object-map/" style="width:100%;border:none;border-radius:12px;min-height:420px;margin:1rem 0;" loading="lazy" title="V8 객체 전체 지도" onload="this.style.height=this.contentWindow.document.body.scrollHeight+16+'px'">&lt;/iframe>
 &lt;hr>
 &lt;h2>정리&lt;span class="hx:absolute hx:-mt-20" id="정리">&lt;/span>
 &lt;a href="#%ec%a0%95%eb%a6%ac" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;p>작고 조그마한 js가 끝없는 요구사항을 어떻게 풀었는지, 그 형태를 거꾸로 따라왔어요. 요구사항 → 구현 형태로 한 줄씩 매핑하면 이래요.&lt;/p>
@@ -830,4 +836,16 @@ title="Copy code"
 &lt;li>&lt;strong>그래서 객체의 모양을 일정하게 유지하면 빨라진다.&lt;/strong> 모양을 깨는 &lt;code>delete&lt;/code>·순서 변경·무분별한 &lt;code>defineProperty&lt;/code>는 느린 길로 떨어뜨린다.&lt;/li>
 &lt;li>&lt;strong>정상을 &lt;code>000&lt;/code>으로 둔 부정형 인코딩&lt;/strong>까지, V8은 흔한 경우의 비용을 0으로 깎아내는 집착을 보인다.&lt;/li>
 &lt;/ul>
-&lt;p>우리가 무심코 쓰는 &lt;code>obj.x = 1&lt;/code> 한 줄 뒤에는, 이렇게 촘촘하게 짜인 엔진의 설계가 숨어 있었다.&lt;/p></description></item></channel></rss>
+&lt;p>우리가 무심코 쓰는 &lt;code>obj.x = 1&lt;/code> 한 줄 뒤에는, 이렇게 촘촘하게 짜인 엔진의 설계가 숨어 있었다.&lt;/p>
+&lt;script>
+window.addEventListener('message', function(e){
+if (e.data &amp;&amp; e.data.type === 'demo-resize') {
+var frames = document.querySelectorAll('iframe[id^="ch16-fig"]');
+for (var i = 0; i &lt; frames.length; i++) {
+if (frames[i].contentWindow === e.source) {
+frames[i].style.height = e.data.height + 16 + 'px';
+}
+}
+}
+});
+&lt;/script></description></item></channel></rss>

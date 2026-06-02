@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>같은 모양은 히든클래스를 공유한다</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --string: #94a3b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-secondary: #1e293b;
+      --bg-card: #0f172a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --string: #64748b;
+    }
+  }
+
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: transparent; color: var(--text-primary); line-height: 1.5; }
+  .demo-container { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-secondary); }
+  .demo-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .demo-header h2 { font-size: 15px; font-weight: 700; }
+  .demo-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .demo-body { padding: 22px 20px 28px; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 9px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-add { background: var(--teal); color: #fff; }
+  .btn-break { background: var(--red); color: #fff; }
+  .btn-reset { background: none; border: 1px solid var(--border); color: var(--text-secondary); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .counter { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
+  .counter strong { color: var(--teal); }
+  .counter .dict-count { color: var(--red); }
+
+  .stage { position: relative; }
+  .wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+  .wires path { fill: none; stroke-width: 1.5; }
+  .wires path.shared { stroke: var(--teal); opacity: 0.55; }
+  .wires path.dict { stroke: var(--red); opacity: 0.6; stroke-dasharray: 4 3; }
+
+  /* 히든클래스 박스 */
+  .hc-area { display: flex; justify-content: center; position: relative; z-index: 2; margin-bottom: 38px; }
+  .hidden-class {
+    background: var(--bg-card); border: 2px solid var(--teal); border-radius: 12px;
+    padding: 12px 18px; text-align: center; box-shadow: 0 4px 14px rgba(20,184,166,0.18);
+  }
+  .hidden-class .hc-label { font-size: 10.5px; font-weight: 700; color: var(--teal); letter-spacing: 0.03em; }
+  .hidden-class .hc-shape { font-family: "SF Mono", monospace; font-size: 14px; font-weight: 700; margin-top: 4px; }
+  .hidden-class .hc-tags { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-family: "SF Mono", monospace; }
+  .hidden-class .hc-port { position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+
+  /* 객체들 */
+  .objects { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; position: relative; z-index: 2; min-height: 20px; }
+  .obj {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 11px 10px; position: relative;
+    font-family: "SF Mono", "Fira Code", monospace; font-size: 11.5px;
+    box-shadow: 0 2px 7px rgba(0,0,0,0.06);
+    animation: pop 0.25s ease;
+  }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .obj .obj-name { font-size: 9px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+  .obj .k { color: var(--teal); font-weight: 700; }
+  .obj .v { color: var(--text-primary); }
+  .obj .port { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 7px; height: 7px; border-radius: 50%; background: var(--string); }
+  .obj.dict { border-color: var(--red); border-style: dashed; }
+  .obj.dict .port { background: var(--red); }
+  .obj.dict .dict-badge {
+    position: absolute; top: -9px; right: -6px;
+    font-size: 8px; font-weight: 700; color: #fff; background: var(--red);
+    padding: 1px 5px; border-radius: 10px; font-family: system-ui;
+  }
+
+  .empty-hint { text-align: center; color: var(--text-muted); font-size: 12px; padding: 14px; }
+
+  .caption { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 22px; line-height: 1.7; }
+  .caption strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>그림 5 · 같은 모양은 히든클래스를 공유한다</h2>
+    <p>객체를 추가해도 히든클래스는 하나뿐. delete로 모양을 깨면 그 객체만 떨어져 나간다.</p>
+  </div>
+  <div class="demo-body">
+    <div class="controls">
+      <button class="btn btn-add" id="add">+ point 객체 추가</button>
+      <button class="btn btn-break" id="break">delete로 모양 깨기</button>
+      <button class="btn btn-reset" id="reset">↺ 리셋</button>
+    </div>
+    <div class="counter">
+      객체 <strong id="objCount">0</strong>개 ·
+      공유 히든클래스 <strong>1</strong>개<span id="dictWrap" style="display:none;"> · <span class="dict-count">개별 사전 <span id="dictCount">0</span>개</span></span>
+    </div>
+
+    <div class="stage" id="stage">
+      <svg class="wires" id="wires" preserveAspectRatio="none"></svg>
+
+      <div class="hc-area">
+        <div class="hidden-class" id="hc">
+          <div class="hc-label">▣ HIDDEN CLASS</div>
+          <div class="hc-shape">{ x, y }</div>
+          <div class="hc-tags">꼬리표 한 벌: x·y → W E C</div>
+          <div class="hc-port" id="hcPort"></div>
+        </div>
+      </div>
+
+      <div class="objects" id="objects">
+        <div class="empty-hint" id="emptyHint">버튼을 눌러 같은 모양의 객체를 만들어 보세요</div>
+      </div>
+    </div>
+
+    <div class="caption">
+      객체가 100개든 100만 개든, 모양이 같으면 <strong>꼬리표 묶음은 단 한 벌.</strong><br>
+      <strong>delete</strong>로 모양이 깨진 객체만 빨간 선으로 떨어져 자기 사전을 따로 든다(<strong>dictionary mode</strong>).
+    </div>
+  </div>
+</div>
+
+<script>
+  let objects = [];   // { el, dict }
+  let counter = 0;
+  const objectsEl = document.getElementById('objects');
+  const emptyHint = document.getElementById('emptyHint');
+  const wires = document.getElementById('wires');
+  const stage = document.getElementById('stage');
+  const hcPort = document.getElementById('hcPort');
+
+  function addObject() {
+    if (emptyHint) emptyHint.style.display = 'none';
+    counter++;
+    const x = Math.floor(counter * 3 % 9) + 1;
+    const y = Math.floor(counter * 7 % 9) + 1;
+    const el = document.createElement('div');
+    el.className = 'obj';
+    el.innerHTML = `<span class="obj-name">point #${counter}</span><span class="k">x</span>:<span class="v">${x}</span> <span class="k">y</span>:<span class="v">${y}</span><span class="port"></span>`;
+    objectsEl.appendChild(el);
+    objects.push({ el, dict: false });
+    draw();
+  }
+
+  function breakOne() {
+    // 아직 안 깨진 객체 하나를 dictionary로
+    const target = objects.find(o => !o.dict);
+    if (!target) return;
+    target.dict = true;
+    target.el.classList.add('dict');
+    const badge = document.createElement('span');
+    badge.className = 'dict-badge';
+    badge.textContent = 'delete!';
+    target.el.appendChild(badge);
+    draw();
+  }
+
+  function reset() {
+    objects.forEach(o => o.el.remove());
+    objects = []; counter = 0;
+    emptyHint.style.display = 'block';
+    draw();
+  }
+
+  function draw() {
+    const dictN = objects.filter(o => o.dict).length;
+    document.getElementById('objCount').textContent = objects.length;
+    document.getElementById('dictCount').textContent = dictN;
+    document.getElementById('dictWrap').style.display = dictN ? 'inline' : 'none';
+
+    const s = stage.getBoundingClientRect();
+    wires.setAttribute('viewBox', `0 0 ${s.width} ${s.height}`);
+    const p = hcPort.getBoundingClientRect();
+    const px = p.left + p.width / 2 - s.left;
+    const py = p.top + p.height / 2 - s.top;
+
+    let d = '';
+    objects.forEach(o => {
+      const port = o.el.querySelector('.port');
+      const r = port.getBoundingClientRect();
+      const ox = r.left + r.width / 2 - s.left;
+      const oy = r.top + r.height / 2 - s.top;
+      const my = (py + oy) / 2;
+      const cls = o.dict ? 'dict' : 'shared';
+      // dictionary 객체는 히든클래스로 안 잇고 짧게 끊긴 선으로 표현
+      if (o.dict) {
+        d += `<path class="dict" d="M${ox},${oy} q -14,-12 -26,-6"/>`;
+      } else {
+        d += `<path class="shared" d="M${px},${py} C${px},${my} ${ox},${my} ${ox},${oy}"/>`;
+      }
+    });
+    wires.innerHTML = d;
+    notifyHeight();
+  }
+
+  document.getElementById('add').addEventListener('click', addObject);
+  document.getElementById('break').addEventListener('click', breakOne);
+  document.getElementById('reset').addEventListener('click', reset);
+
+  function notifyHeight() {
+    window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+  }
+  window.addEventListener('resize', draw);
+  window.addEventListener('load', () => { addObject(); addObject(); addObject(); });
+  setTimeout(notifyHeight, 100);
+</script>
+</body>
+</html>

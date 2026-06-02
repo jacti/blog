@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>값에 매달린 꼬리표</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --teal: hsl(173, 80%, 35%);
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --string: #94a3b8;
+    --green: #10b981;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-secondary: #1e293b;
+      --bg-card: #0f172a;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --teal: hsl(173, 80%, 45%);
+      --code-bg: #0f172a;
+      --string: #64748b;
+    }
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: transparent;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .demo-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+
+  .demo-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .demo-header h2 { font-size: 15px; font-weight: 700; }
+  .demo-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+  .demo-body { padding: 28px 20px 32px; }
+
+  .stage { display: flex; flex-direction: column; align-items: center; }
+
+  .layer-label {
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+
+  .visible-code {
+    background: var(--code-bg); color: var(--code-text);
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 15px; padding: 14px 22px; border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .visible-code .prop { color: #7dd3fc; }
+  .visible-code .val { color: #fcd34d; }
+  .visible-code .punc { color: #94a3b8; }
+
+  .connector { width: 2px; height: 26px; background: linear-gradient(var(--border), var(--teal)); position: relative; }
+  .connector::after {
+    content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--teal);
+  }
+  .hidden-hint { font-size: 11px; color: var(--text-muted); margin: 6px 0 16px; font-style: italic; }
+
+  /* 끈 + 태그가 그려지는 무대 */
+  .hang-area { position: relative; width: 100%; }
+
+  .strings {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 1; overflow: visible;
+  }
+  .strings path { fill: none; stroke: var(--string); stroke-width: 1.5; }
+
+  /* 중심: 프로퍼티 키 */
+  .hub-wrap { display: flex; justify-content: center; position: relative; z-index: 2; }
+  .property-chip {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 11px 20px 13px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 15px; font-weight: 700;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  .property-chip .key { color: var(--teal); }
+  .property-chip .colon { color: var(--text-muted); }
+  .hub {
+    position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 3px var(--bg-secondary);
+  }
+
+  /* 매달린 태그들 */
+  .tag-row {
+    display: flex; justify-content: center; align-items: flex-start;
+    gap: 12px 16px; flex-wrap: wrap;
+    position: relative; z-index: 2;
+    margin-top: 52px;
+  }
+
+  .tag {
+    position: relative;
+    background: var(--tag-tint);
+    border: 1.5px solid var(--tag-color);
+    border-radius: 8px;
+    padding: 11px 13px 10px;
+    min-width: 96px; text-align: center;
+    box-shadow: 0 3px 9px rgba(0,0,0,0.08);
+  }
+  .grommet {
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--tag-color);
+  }
+  .tag .tag-name {
+    display: block; margin-top: 8px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12.5px; font-weight: 700; color: var(--tag-color);
+  }
+  .tag .tag-desc { display: block; margin-top: 2px; font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+
+  .tag.teal  { --tag-color: var(--teal);  --tag-tint: rgba(20,184,166,0.09); }
+  .tag.green { --tag-color: var(--green); --tag-tint: rgba(16,185,129,0.09); }
+  .tag.blue  { --tag-color: var(--blue);  --tag-tint: rgba(59,130,246,0.09); }
+  .tag.amber { --tag-color: var(--amber); --tag-tint: rgba(245,158,11,0.09); }
+
+  .caption {
+    text-align: center; font-size: 12.5px; color: var(--text-secondary);
+    margin-top: 28px; line-height: 1.7;
+  }
+  .caption strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <h2>그림 1 · 값에 매달린 꼬리표</h2>
+    <p>우리 눈에는 값 하나만 보이지만, 그 뒤엔 꼬리표가 대롱대롱 매달려 있다.</p>
+  </div>
+  <div class="demo-body">
+    <div class="stage">
+      <div class="layer-label">👁️ 우리가 코드에서 보는 것</div>
+      <div class="visible-code"><span class="prop">person</span><span class="punc">.</span><span class="prop">name</span> <span class="punc">→</span> <span class="val">'기래'</span></div>
+
+      <div class="connector"></div>
+      <div class="hidden-hint">…그런데 엔진 속을 들여다보면</div>
+
+      <div class="hang-area" id="hangArea">
+        <svg class="strings" id="strings" preserveAspectRatio="none"></svg>
+
+        <div class="hub-wrap">
+          <div class="property-chip">
+            <span class="key">name</span>
+            <span class="hub" id="hub"></span>
+          </div>
+        </div>
+
+        <div class="tag-row" id="tagRow">
+          <div class="tag teal">
+            <span class="grommet"></span>
+            <span class="tag-name">value</span>
+            <span class="tag-desc">'기래'</span>
+          </div>
+          <div class="tag green">
+            <span class="grommet"></span>
+            <span class="tag-name">writable</span>
+            <span class="tag-desc">값 바꿔도 돼</span>
+          </div>
+          <div class="tag blue">
+            <span class="grommet"></span>
+            <span class="tag-name">enumerable</span>
+            <span class="tag-desc">목록에 나와도 돼</span>
+          </div>
+          <div class="tag amber">
+            <span class="grommet"></span>
+            <span class="tag-name">configurable</span>
+            <span class="tag-desc">지우거나 바꿔도 돼</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption">
+        <strong>name</strong>이라는 프로퍼티 키 하나에, 값(<strong>value</strong>)을 포함한 네 개의 꼬리표가 매달려 있다.<br>
+        이 꼬리표들을 묶어 <strong>프로퍼티 어트리뷰트</strong>라고 부른다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const area = document.getElementById('hangArea');
+  const svg = document.getElementById('strings');
+  const hub = document.getElementById('hub');
+  const grommets = () => Array.from(document.querySelectorAll('.grommet'));
+
+  function drawStrings() {
+    const a = area.getBoundingClientRect();
+    const h = hub.getBoundingClientRect();
+    const hx = h.left + h.width / 2 - a.left;
+    const hy = h.top + h.height / 2 - a.top;
+
+    svg.setAttribute('viewBox', `0 0 ${a.width} ${a.height}`);
+
+    let d = '';
+    grommets().forEach(g => {
+      const r = g.getBoundingClientRect();
+      const gx = r.left + r.width / 2 - a.left;
+      const gy = r.top + r.height / 2 - a.top;
+      // 허브에서 한 번 아래로 모였다가 각 태그로 휘어 내려가는 끈
+      const cy = hy + (gy - hy) * 0.55;
+      d += `M${hx},${hy} Q${hx},${cy} ${gx},${gy} `;
+    });
+    svg.innerHTML = `<path d="${d.trim()}"/>`;
+  }
+
+  function notifyHeight() {
+    window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+  }
+  function refresh() { drawStrings(); notifyHeight(); }
+
+  window.addEventListener('resize', refresh);
+  window.addEventListener('load', refresh);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
+  setTimeout(refresh, 100);
+  setTimeout(refresh, 400);
+</script>
+</body>
+</html>
