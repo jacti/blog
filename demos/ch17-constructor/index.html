@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch17 — 라이브 실험</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #e2e8f0;
+      --accent: #0d9488; --green: #059669; --red: #dc2626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+        --accent: #2dd4bf; --green: #34d399; --red: #f87171;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 16px;
+    }
+    .repl {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .repl-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 14px;
+      background: var(--bg-code);
+      border-bottom: 1px solid var(--border);
+    }
+    .repl-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px; color: var(--muted);
+    }
+    .repl-run {
+      padding: 4px 14px; border-radius: 6px;
+      background: var(--accent); color: #fff;
+      border: none; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .repl-run:hover { opacity: 0.85; }
+    .repl-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 120px;
+    }
+    @media (max-width: 540px) {
+      .repl-body { grid-template-columns: 1fr; }
+    }
+    .repl-code {
+      padding: 0;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    @media (max-width: 540px) {
+      .repl-code { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    .repl-code textarea {
+      width: 100%; height: 100%; min-height: 170px;
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: transparent; color: var(--text);
+      border: none; outline: none; resize: vertical;
+      tab-size: 2;
+    }
+    .repl-output {
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "SF Mono", monospace;
+      font-size: 13px; line-height: 1.6;
+      background: var(--bg-code); color: #a7f3d0;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      min-height: 170px;
+    }
+    .repl-output .out-log { color: #a7f3d0; }
+    .repl-output .out-err { color: #f87171; font-weight: 700; }
+    .repl-output .out-true { color: #34d399; font-weight: 700; }
+    .repl-output .out-false { color: #f87171; font-weight: 700; }
+    .repl-output .out-undef { color: #64748b; font-style: italic; }
+    .repl-output .out-num { color: #fbbf24; }
+    .repl-output .out-str { color: #34d399; }
+    .repl-output .out-null { color: #64748b; font-weight: 700; }
+    .label {
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      margin: 4px 0 6px; letter-spacing: 0.03em;
+    }
+    .hint {
+      font-size: 12px; color: var(--muted); padding: 0 4px 12px;
+    }
+    .demo-block { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- Q1: 명시적 return — 원시값은 무시, 객체는 채택 -->
+<div class="demo-block" data-key="q1">
+  <div class="label">명시적 return — 원시값은 무시되고, 객체는 채택된다 (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-q1">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q1')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Foo() {
+  this.x = 1;
+  return 100;        // 원시값 → 무시된다
+}
+function Bar() {
+  this.x = 1;
+  return { y: 2 };   // 객체 → 채택된다 (this는 버려짐)
+}
+
+console.log("new Foo() →", new Foo()); // { x: 1 }
+console.log("new Bar() →", new Bar()); // { y: 2 }</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">팁: <code>return 100</code>을 <code>return { z: 9 }</code>로 바꾸면 Foo도 그 객체를 돌려준다.</div>
+</div>
+
+<!-- Q2-a: 싱글톤 -->
+<div class="demo-block" data-key="singleton">
+  <div class="label">싱글톤 — new를 두 번 해도 인스턴스는 하나 (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-singleton">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-singleton')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Config() {
+  // 이미 인스턴스가 있으면 그걸 객체로 return → 채택된다
+  if (Config.instance) return Config.instance;
+  this.settings = {};
+  Config.instance = this;
+}
+
+const a = new Config();
+const b = new Config();
+console.log("a === b :", a === b);      // 같은 객체일까?
+a.settings.theme = "dark";
+console.log("b.settings:", b.settings); // a에서 바꿨는데 b에도 보인다</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">팁: <code>return Config.instance;</code> 줄을 지우면 매번 새 인스턴스가 생겨 <code>a === b</code>가 false가 된다.</div>
+</div>
+
+<!-- Q2-b: Proxy 래핑 -->
+<div class="demo-block" data-key="proxy">
+  <div class="label">Proxy 래핑 — 생성자가 this 대신 Proxy를 return (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-proxy">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-proxy')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Model(data) {
+  Object.assign(this, data);
+  // this를 감싼 Proxy를 return
+  return new Proxy(this, {
+    set(target, key, value) {
+      console.log("변경 감지 →", key, ":", value);
+      target[key] = value;
+      return true;
+    }
+  });
+}
+
+const m = new Model({ name: "kim" });
+m.name = "lee";  // set 트랩이 가로챈다
+m.age = 20;      // 새 프로퍼티도 감지
+console.log("최종 m.name:", m.name);</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">팁: <code>return new Proxy(...)</code>를 지우면 평범한 인스턴스가 되어 변경 감지가 사라진다.</div>
+</div>
+
+<!-- Q3: class / 화살표의 new 분기 -->
+<div class="demo-block" data-key="q3">
+  <div class="label">class도 함수다 — 그리고 new 가능 여부는 정의 방식이 가른다 (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-q3">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q3')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>class Bar {}
+console.log("typeof Bar :", typeof Bar); // "function"
+
+try { Bar(); }                 // new 없이 호출
+catch (e) { console.log("Bar() →", e.constructor.name); }
+
+const arrow = () => {};
+try { new arrow(); }           // 화살표를 new
+catch (e) { console.log("new arrow() →", e.constructor.name); }</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">class는 [[Construct]]는 있지만 [[Call]]이 막혀 있고, 화살표는 [[Construct]] 자체가 없다.</div>
+</div>
+
+<!-- Q4: prototype은 정의 시점에 이미 있다 -->
+<div class="demo-block" data-key="q4">
+  <div class="label">prototype은 new 이전, 함수 정의 시점에 이미 존재한다 (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-q4">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q4')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Foo() {}
+// new를 한 번도 안 했는데...
+console.log("constructor 백참조 :", Foo.prototype.constructor === Foo); // true
+console.log("typeof Foo.prototype :", typeof Foo.prototype);            // "object"
+
+const arrow = () => {};
+console.log("arrow.prototype :", arrow.prototype); // 생성자가 아니라 undefined</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">생성자로 못 쓰는 화살표 함수엔 prototype 프로퍼티가 아예 없다(undefined).</div>
+</div>
+
+<!-- Q5: 위임 — 나중에 추가한 메서드도 동작 -->
+<div class="demo-block" data-key="q5">
+  <div class="label">위임의 증거 — 인스턴스를 만든 '후에' 추가한 메서드도 동작한다 (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-q5">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q5')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Animal() {}
+const a = new Animal(); // 이 순간 speak는 어디에도 없다
+
+// a를 만든 '후에' 부모에 추가
+Animal.prototype.speak = function () { return "소리!"; };
+
+// 복사 모델이라면 몰라야 하는데...
+console.log("a.speak() :", a.speak()); // 호출 시점에 체인에서 찾아온다</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">복사가 아니라 링크(위임)이기 때문에, 부모를 나중에 바꿔도 살아있는 자식에 즉시 반영된다.</div>
+</div>
+
+<!-- Q6-a: 무한 재귀 RangeError -->
+<div class="demo-block" data-key="q6">
+  <div class="label">⚠️ instanceof 뒤에 엉뚱한 타입 → 무한 재귀로 RangeError (Run을 눌러 직접 확인)</div>
+  <div class="repl" id="repl-q6">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q6')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>function Person(name) {
+  if (!(this instanceof Date)) {  // Person이 아니라 Date를 넣어버림
+    return new Person(name);      // new로 만들어도 Date가 아니니 또 걸림
+  }
+  this.name = name;
+}
+
+new Person("kim"); // 출구가 없는 무한 재귀!</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">new Person()이 만드는 객체는 항상 Person(Date 아님)이라 가드를 영원히 못 빠져나간다.</div>
+</div>
+
+<!-- Q6-b: 올바른 가드 + new.target -->
+<div class="demo-block" data-key="q6b">
+  <div class="label">✅ 올바른 가드: 자기 자신 instanceof / new.target (직접 고쳐보세요)</div>
+  <div class="repl" id="repl-q6b">
+    <div class="repl-header"><span class="repl-title">코드</span><button class="repl-run" onclick="run('repl-q6b')">Run</button></div>
+    <div class="repl-body">
+      <div class="repl-code"><textarea>// ① instanceof 가드 — 뒤에 '자기 자신'을 적는다
+function PersonA(name) {
+  if (!(this instanceof PersonA)) return new PersonA(name);
+  this.name = name;
+}
+console.log("instanceof :", PersonA("kim").name); // new 없이도 안전
+
+// ② new.target 가드 — 타입을 적을 자리가 없어 실수 불가
+function PersonB(name) {
+  if (!new.target) return new PersonB(name);
+  this.name = name;
+}
+console.log("new.target :", PersonB("lee").name);</textarea></div>
+      <div class="repl-output"></div>
+    </div>
+  </div>
+  <div class="hint">new로 만든 객체가 가드 조건을 '만족'하므로 두 번째 호출에서 빠져나간다.</div>
+</div>
+
+<script>
+function formatValue(v) {
+  if (v === undefined) return '<span class="out-undef">undefined</span>';
+  if (v === null) return '<span class="out-null">null</span>';
+  if (typeof v === 'boolean') return '<span class="out-' + v + '">' + v + '</span>';
+  if (typeof v === 'number') return '<span class="out-num">' + v + '</span>';
+  if (typeof v === 'string') return '<span class="out-str">"' + v.replace(/</g,'&lt;') + '"</span>';
+  if (Array.isArray(v)) return '[' + v.map(formatValue).join(', ') + ']';
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
+
+function run(id) {
+  const repl = document.getElementById(id);
+  if (!repl) return;
+  const code = repl.querySelector('textarea').value;
+  const outputEl = repl.querySelector('.repl-output');
+  const lines = [];
+
+  const origLog = console.log;
+  console.log = function(...args) {
+    const formatted = args.map(a => {
+      if (typeof a === 'string') return a.replace(/</g, '&lt;');
+      return formatValue(a);
+    }).join(' ');
+    lines.push('<span class="out-log">' + formatted + '</span>');
+  };
+
+  try {
+    const fn = new Function(code);
+    fn();
+  } catch (e) {
+    lines.push('<span class="out-err">' + e.constructor.name + ': ' + e.message.replace(/</g,'&lt;') + '</span>');
+  }
+
+  console.log = origLog;
+  outputEl.innerHTML = lines.join('\n') || '<span class="out-undef">undefined</span>';
+}
+
+// ?only=q1,q6 처럼 특정 실험만 노출. 없으면 전부.
+document.addEventListener('DOMContentLoaded', () => {
+  const only = new URLSearchParams(location.search).get('only');
+  const allow = only ? only.split(',').map(s => s.trim()) : null;
+
+  document.querySelectorAll('.demo-block').forEach(block => {
+    const key = block.dataset.key;
+    if (allow && !allow.includes(key)) {
+      block.style.display = 'none';
+    } else {
+      run('repl-' + key); // 보이는 실험만 자동 실행
+    }
+  });
+});
+</script>
+</body>
+</html>
