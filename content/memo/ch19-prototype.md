@@ -1,11 +1,11 @@
 ---
-title: "ch19. __proto__도 일개 프로퍼티였다 — 빌트인과 엔진 내부 메모"
-date: 2026-06-30
-tags: [javascript, deep-dive, ch19, prototype, proto, builtin, global-object, v8, hidden-class]
-weight: 12
+title: "ch19. __proto__·빌트인·V8 내부 슬롯"
+linkTitle: "ch19 프로토타입 메모"
+weight: 19
+type: docs
 ---
 
-> 프로토타입을 공부하다 갈래로 새어나온 글감 메모를 그대로 옮긴 글이에요. 다듬은 본문이 아니라 "이걸로 글을 쓰겠다"는 포인트 모음입니다.
+> 프로토타입을 공부하다 갈래로 새어나온 글감 메모예요. 다듬은 본문이 아니라 "이걸로 글을 쓰겠다"는 포인트 모음입니다.
 
 ## `__proto__`도 결국 일개 프로퍼티일 뿐이다
 
