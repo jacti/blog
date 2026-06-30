@@ -1,4 +1,4 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Prototype</title><link>https://blog.girae.me/tags/prototype/</link><description>Recent content in Prototype on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Tue, 16 Jun 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/prototype/index.xml" rel="self" type="application/rss+xml"/><item><title>ch17. 생성자 함수는 결국 그냥 함수였다 — new 와 생성자 함수에 대한 6문 6답</title><link>https://blog.girae.me/learning-log/ch17-constructor/</link><pubDate>Tue, 09 Jun 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch17-constructor/</guid><description>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>jacti-log – Prototype</title><link>https://blog.girae.me/tags/prototype/</link><description>Recent content in Prototype on jacti-log</description><generator>Hugo -- gohugo.io</generator><language>ko</language><lastBuildDate>Tue, 30 Jun 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.girae.me/tags/prototype/index.xml" rel="self" type="application/rss+xml"/><item><title>ch17. 생성자 함수는 결국 그냥 함수였다 — new 와 생성자 함수에 대한 6문 6답</title><link>https://blog.girae.me/learning-log/ch17-constructor/</link><pubDate>Tue, 09 Jun 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch17-constructor/</guid><description>
 &lt;blockquote>
 &lt;p>17장을 한 문장으로 줄이면 이렇다. &lt;strong>생성자 함수라는 특별한 존재는 없다. 평범한 함수에 &lt;code>new&lt;/code>를 붙였을 때 추가되는 암묵적 행동들이 있을 뿐이다.&lt;/strong>&lt;/p>
 &lt;/blockquote>
@@ -562,4 +562,69 @@ title="Copy code"
 &lt;li>이 위임은 라이브여서, 이미 만든 인스턴스의 동작도 상속 구조도 실행 중에 바꿀 수 있다 — 강력하지만 추적은 어렵다.&lt;/li>
 &lt;li>&lt;strong>언어 입장의 단순함이 사용자에겐 큰 복잡함으로 전가될 수 있다&lt;/strong> — 이번 19장 앞부분의 가장 큰 배움이다.&lt;/li>
 &lt;li>그리고 그 &amp;ldquo;객체로 통일하자&amp;quot;는 단순화가, 함수마저 객체로 만든 &lt;strong>일급 객체(18장)&lt;/strong> 와 한 뿌리였다.&lt;/li>
+&lt;/ul></description></item><item><title>ch19. __proto__도 일개 프로퍼티였다 — 빌트인과 엔진 내부 메모</title><link>https://blog.girae.me/learning-log/ch19b-prototype-internals/</link><pubDate>Tue, 30 Jun 2026 00:00:00 +0000</pubDate><guid>https://blog.girae.me/learning-log/ch19b-prototype-internals/</guid><description>
+&lt;blockquote>
+&lt;p>프로토타입을 공부하다 갈래로 새어나온 글감 메모를 그대로 옮긴 글이에요. 다듬은 본문이 아니라 &amp;ldquo;이걸로 글을 쓰겠다&amp;quot;는 포인트 모음입니다.&lt;/p>
+&lt;/blockquote>
+&lt;h2>&lt;code>__proto__&lt;/code>도 결국 일개 프로퍼티일 뿐이다&lt;span class="hx:absolute hx:-mt-20" id="__proto__도-결국-일개-프로퍼티일-뿐이다">&lt;/span>
+&lt;a href="#__proto__%eb%8f%84-%ea%b2%b0%ea%b5%ad-%ec%9d%bc%ea%b0%9c-%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0%ec%9d%bc-%eb%bf%90%ec%9d%b4%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>
+&lt;p>핵심 명제: &lt;code>__proto__&lt;/code>는 언어의 특별한 문법(키워드)이 아니라 &lt;code>Object.prototype&lt;/code>에 정의된 &lt;strong>접근자 프로퍼티&lt;/strong>일 뿐이다.&lt;/p>
+&lt;ul>
+&lt;li>즉 모든 객체가 프로토타입 체인을 통해 상속받아 쓰는 평범한 프로퍼티.&lt;/li>
+&lt;li>직접 객체에 &lt;code>__proto__&lt;/code>라는 데이터 프로퍼티를 만들면 그놈과는 별개다 (&lt;code>Object.getOwnPropertyDescriptor(Object.prototype, '__proto__')&lt;/code>로 증명).&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>왜 데이터 프로퍼티가 아니라 접근자 프로퍼티여야 했나&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>[[Prototype]]&lt;/code>은 엔진이 관리하는 내부 슬롯이라 값을 그냥 읽고 쓰면 안 된다.&lt;/li>
+&lt;li>getter/setter로 감싸야 &lt;code>set __proto__&lt;/code>에서 순환 참조 검사, 객체 여부 검사 등 엔진 차원의 동작을 끼워넣을 수 있다.&lt;/li>
+&lt;li>데이터 프로퍼티였다면 그냥 슬롯을 덮어써서 프로토타입 체인을 깨뜨릴 수 있었을 것.&lt;/li>
+&lt;li>→ 접근자 프로퍼티 = &amp;ldquo;프로퍼티 접근을 함수 호출로 가로채는&amp;rdquo; 메커니즘. (16장 프로퍼티 어트리뷰트와 연결)&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;strong>JS에서 &amp;ldquo;언어가 공식 지원하는 함수처럼 보이는 것&amp;quot;을 직접 만드는 방법&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>__proto__&lt;/code>, &lt;code>length&lt;/code>, &lt;code>size&lt;/code> 등은 마법이 아니라 전부 접근자 프로퍼티 / 빌트인으로 구현된 것.&lt;/li>
+&lt;li>&lt;code>Object.defineProperty&lt;/code>로 get/set을 정의하면 나도 똑같이 &amp;ldquo;값처럼 접근하지만 실제론 함수가 도는&amp;rdquo; API를 만들 수 있다.&lt;/li>
+&lt;li>예: 클래스의 getter/setter, 라이브러리들이 &lt;code>obj.foo&lt;/code>처럼 자연스러운 인터페이스를 제공하는 원리.&lt;/li>
+&lt;li>결론: 언어 내장 기능과 사용자 정의 기능 사이의 경계가 생각보다 얇다 — 같은 도구(접근자 프로퍼티)로 만들어진다.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>(인사이트 연결) &lt;code>[[Prototype]]&lt;/code>이 왜 접근자로 감싸여야 했는지는 &lt;strong>엔진 메모리 구조&lt;/strong>를 보면 더 명확해짐 → 아래 V8 섹션 참고.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h2>빌트인 객체도 결국 전역 객체의 프로퍼티다&lt;span class="hx:absolute hx:-mt-20" id="빌트인-객체도-결국-전역-객체의-프로퍼티다">&lt;/span>
+&lt;a href="#%eb%b9%8c%ed%8a%b8%ec%9d%b8-%ea%b0%9d%ec%b2%b4%eb%8f%84-%ea%b2%b0%ea%b5%ad-%ec%a0%84%ec%97%ad-%ea%b0%9d%ec%b2%b4%ec%9d%98-%ed%94%84%eb%a1%9c%ed%8d%bc%ed%8b%b0%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>&lt;code>__proto__&lt;/code>가 일개 프로퍼티였던 것과 같은 결의 이야기: 표준 빌트인 객체(&lt;code>Object&lt;/code>, &lt;code>Number&lt;/code>, &lt;code>Array&lt;/code>, &lt;code>Function&lt;/code>, &lt;code>Math&lt;/code>, &lt;code>JSON&lt;/code> 등)도 마법 키워드가 아니라 &lt;strong>전역 객체(&lt;code>globalThis&lt;/code>)의 프로퍼티&lt;/strong>로 등록되어 있을 뿐이다.
+&lt;ul>
+&lt;li>&lt;code>globalThis.Object === Object&lt;/code>, &lt;code>globalThis.Math === Math&lt;/code> → true 로 증명.&lt;/li>
+&lt;li>그래서 선언 없이 어디서든 쓸 수 있다 — 전역 객체가 전역 스코프의 최상위라서 식별자 해석이 전역 객체 프로퍼티로 귀결되기 때문.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>포인트: &amp;ldquo;언어가 기본 제공하는 것&amp;quot;처럼 보이는 이름들이 실은 &lt;strong>평범한 객체의 평범한 프로퍼티&lt;/strong>로 얹혀 있다. &lt;code>__proto__&lt;/code>(접근자 프로퍼티) → 빌트인 객체(전역 객체의 프로퍼티)로 같은 메시지가 반복됨.&lt;/li>
+&lt;li>환경별 전역 객체: 브라우저 &lt;code>window&lt;/code>, Node.js &lt;code>global&lt;/code>, 표준화된 통합 이름 &lt;code>globalThis&lt;/code>(ES2020).&lt;/li>
+&lt;li>&lt;code>Math&lt;/code>/&lt;code>JSON&lt;/code>은 생성자가 아닌 정적 객체라는 차이도 함께 짚기 (new 못 함).&lt;/li>
+&lt;li>(TMI) 이건 엔진이 그냥 해주는 게 아니라 스펙에 절차로 박혀 있다 — Realm 생성 시 &lt;code>CreateIntrinsics&lt;/code>(표준 객체 생성) → &lt;code>SetDefaultGlobalBindings&lt;/code>(전역 객체 프로퍼티로 바인딩). V8에선 &lt;code>Genesis&lt;/code>(bootstrapper.cc)가 이 일을 하고, 매번 새로 설치하면 느리니 부트스트랩 끝난 힙을 스냅샷으로 직렬화해두고 복원함.&lt;/li>
+&lt;/ul>
+&lt;h2>V8 내부 — &lt;code>[[Prototype]]&lt;/code> 등 내부 슬롯은 어디에 저장되나&lt;span class="hx:absolute hx:-mt-20" id="v8-내부--prototype-등-내부-슬롯은-어디에-저장되나">&lt;/span>
+&lt;a href="#v8-%eb%82%b4%eb%b6%80--prototype-%eb%93%b1-%eb%82%b4%eb%b6%80-%ec%8a%ac%eb%a1%af%ec%9d%80-%ec%96%b4%eb%94%94%ec%97%90-%ec%a0%80%ec%9e%a5%eb%90%98%eb%82%98" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;ul>
+&lt;li>&lt;code>[[Prototype]]&lt;/code>은 객체 인스턴스의 일반 프로퍼티들과 &lt;strong>같은 곳에 저장되지 않는다.&lt;/strong>&lt;/li>
+&lt;li>V8 객체 레이아웃: &lt;code>[Map 포인터][properties 백킹스토어][elements][in-object 프로퍼티들...]&lt;/code>
+&lt;ul>
+&lt;li>일반 named 프로퍼티 → in-object 슬롯 or properties 배열(빠름) / dictionary 모드(느림)에 &lt;strong>인스턴스별&lt;/strong>로 저장.&lt;/li>
+&lt;li>&lt;code>[[Prototype]]&lt;/code>은 인스턴스가 아니라 그 객체의 &lt;strong>Map(Hidden Class)&lt;/strong> 안의 &lt;code>prototype&lt;/code> 필드에 저장됨.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>함의:
+&lt;ul>
+&lt;li>같은 Hidden Class를 공유하는 객체들은 프로토타입도 공유 (shape 메타데이터의 일부).&lt;/li>
+&lt;li>&lt;code>Object.setPrototypeOf&lt;/code> / &lt;code>__proto__&lt;/code> 변경 → &lt;strong>Hidden Class 전이(transition)&lt;/strong> 발생 → 비싸고 최적화(IC) 깨짐. &amp;ldquo;프로토타입 바꾸지 마라&amp;quot;의 엔진 레벨 근거.&lt;/li>
+&lt;li>&lt;code>[[Extensible]]&lt;/code> 등 다른 내부 슬롯도 Map의 bit field에 저장 — 역시 인스턴스 데이터와 분리.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>→ 10장 글의 Hidden Class 다이어그램(Map 포인터 / Properties / Prototype 포인터)과 그대로 이어짐.&lt;/li>
 &lt;/ul></description></item></channel></rss>
