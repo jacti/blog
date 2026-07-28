@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch23 — 실행 컨텍스트 시뮬레이터</title>
+  <style>
+    :root {
+      --bg: #f8fafc; --bg2: #fff; --bg-code: #1e293b;
+      --text: #0f172a; --muted: #64748b; --border: #cbd5e1;
+      --accent: #0d9488; --green: #059669; --red: #dc2626;
+      --violet: #7c3aed; --violet-bg: #ede9fe;
+      --green-bg: #d1fae5; --red-bg: #fee2e2;
+      --amber: #b45309; --str: #047857;
+      --head-bg: #fed7aa; --head-text: #431407;
+      --stackcol-bg: #eef1f6;
+      --arrow: #64748b; --arrow-ptr: #0d9488;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --bg2: #1e293b; --bg-code: #0a0f1a;
+        --text: #e2e8f0; --muted: #94a3b8; --border: #475569;
+        --accent: #2dd4bf; --green: #34d399; --red: #f87171;
+        --violet: #a78bfa; --violet-bg: #2e1065;
+        --green-bg: #064e3b; --red-bg: #7f1d1d;
+        --amber: #fbbf24; --str: #6ee7b7;
+        --head-bg: #7c2d12; --head-text: #fed7aa;
+        --stackcol-bg: #151e31;
+        --arrow: #94a3b8; --arrow-ptr: #2dd4bf;
+      }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.55; padding: 14px; font-size: 14px;
+    }
+    .top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .top h1 { font-size: 15px; font-weight: 700; }
+    .top select {
+      flex: 1; min-width: 220px; padding: 6px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+      font-family: inherit; font-size: 13px;
+    }
+    .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+    .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .controls button {
+      padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg2); color: var(--text);
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .controls button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .controls button:disabled { opacity: 0.35; cursor: default; }
+    .controls .counter { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .dots { display: flex; gap: 4px; flex-wrap: wrap; }
+    .dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; }
+    .dots span.d-eval { background: var(--violet); opacity: 0.35; }
+    .dots span.d-run { background: var(--green); opacity: 0.35; }
+    .dots span.d-error { background: var(--red); opacity: 0.35; }
+    .dots span.on { opacity: 1; outline: 2px solid var(--text); outline-offset: 1px; }
+
+    .phase { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+    .phase.p-eval { background: var(--violet-bg); color: var(--violet); }
+    .phase.p-run { background: var(--green-bg); color: var(--green); }
+    .phase.p-error { background: var(--red-bg); color: var(--red); }
+    .phase small { font-weight: 400; font-size: 12px; opacity: 0.85; }
+
+    .toprow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 10px; margin-bottom: 10px; }
+    @media (max-width: 700px) { .toprow { grid-template-columns: 1fr; } }
+
+    .codebox { background: var(--bg-code); border-radius: 10px; border: 1px solid var(--border); overflow: auto; align-self: start; }
+    .codebox .cap, .console .cap {
+      padding: 5px 12px; font-size: 11px; color: #94a3b8;
+      border-bottom: 1px solid rgba(148,163,184,0.2);
+      font-family: "JetBrains Mono", monospace;
+    }
+    .code { padding: 6px 0; font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 12.5px; line-height: 1.65; }
+    .cl { display: flex; white-space: pre; color: #cbd5e1; padding: 0 12px; }
+    .cl .ln { width: 26px; color: #475569; user-select: none; flex-shrink: 0; }
+    .cl.hl-eval, .cl.hl-run, .cl.hl-error { border-radius: 5px; outline-offset: -2px; animation: fadein-line 0.4s ease both; }
+    @keyframes fadein-line { 0% { outline-color: transparent; } }
+    .cl.hl-eval { background: rgba(139, 92, 246, 0.22); outline: 2.5px solid #a78bfa; }
+    .cl.hl-run  { background: rgba(16, 185, 129, 0.18); outline: 2.5px solid #34d399; }
+    .cl.hl-error{ background: rgba(239, 68, 68, 0.22); outline: 2.5px solid #f87171; }
+    .cl.hl-eval .ln, .cl.hl-run .ln, .cl.hl-error .ln { color: #e2e8f0; font-weight: 700; }
+
+    .console { margin-top: 8px; background: var(--bg-code); border-radius: 10px; border: 1px solid var(--border); font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+    .console .lines { padding: 6px 12px; min-height: 34px; }
+    .console .lines div { color: #a7f3d0; }
+    .console .lines div.err { color: #f87171; }
+    .console .lines .empty { color: #475569; font-style: italic; }
+
+    .desc { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; align-self: start; }
+    .desc code { font-family: "JetBrains Mono", monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+
+    /* ── 다이어그램 ── */
+    .diagram-wrap { border: 1px solid var(--border); border-radius: 10px; background: var(--bg2); overflow-x: auto; }
+    .diagram { position: relative; min-width: 780px; padding: 18px 18px 8px; }
+    #arrows { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+    .bands { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 30px; }
+    .band { display: grid; grid-template-columns: 205px minmax(250px, 300px) 1fr; gap: 56px; align-items: start; }
+    .cell-ec { background: var(--stackcol-bg); border-radius: 8px; padding: 10px; min-height: 20px; align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+    .cell-recs { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+    .stack-label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-align: center; padding: 4px 0 0; }
+
+    table.tb { border-collapse: collapse; font-size: 12px; background: var(--bg2); width: 100%; }
+    table.tb th {
+      background: var(--head-bg); color: var(--head-text);
+      border: 1.5px solid var(--border); padding: 5px 10px;
+      font-size: 12px; font-weight: 700; text-align: center;
+    }
+    table.tb th small { font-weight: 400; font-size: 10.5px; display: block; }
+    table.tb td { border: 1.5px solid var(--border); padding: 4px 10px; vertical-align: middle; }
+    table.tb td.dotcell { width: 26px; text-align: center; color: var(--text); font-size: 10px; }
+    table.tb td.namecell { font-weight: 600; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+    table.tb td.valcell { font-family: "JetBrains Mono", monospace; font-size: 12px; min-width: 90px; }
+    table.tb td.null { color: var(--muted); font-style: italic; text-align: center; font-family: "JetBrains Mono", monospace; }
+    .ec-tb { min-width: 185px; }
+    .rec-tb { min-width: 230px; }
+    .foot-note { font-size: 10.5px; color: var(--muted); font-family: "JetBrains Mono", monospace; padding: 2px 0 0 2px; }
+
+    /* 노드 상태 */
+    .node { transition: opacity 0.25s; }
+    .node.ghost { opacity: 0.22; }
+    .node.ghost table.tb, .node.ghost table.tb th, .node.ghost table.tb td { border-style: dashed; }
+    .node.dead { opacity: 0.3; }
+    .state-tag { font-size: 10px; font-weight: 700; margin-left: 6px; }
+    .state-tag.ghost { color: var(--muted); }
+    .state-tag.dead { color: var(--red); }
+    .alive-note {
+      font-size: 11px; color: var(--green); background: var(--green-bg);
+      border: 1px solid var(--green); border-radius: 6px;
+      padding: 2px 8px; margin-bottom: 4px; display: inline-block;
+    }
+
+    /* 강조(엔진이 지금 참조하는 곳) — 스텝마다 이동 */
+    .focus { position: relative; outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 3px; animation: pulse 0.55s ease both; animation-delay: var(--d, 0s); z-index: 3; }
+    .focus.f-miss { outline-color: var(--red); }
+    .focus.f-new { outline-color: var(--violet); }
+    @keyframes pulse {
+      0% { outline-offset: 8px; outline-color: transparent; }
+      100% { outline-offset: 2px; }
+    }
+    .chip { font-size: 10px; font-weight: 700; margin-left: 6px; padding: 0 5px; border-radius: 99px; white-space: nowrap; }
+    .chip.hit { color: var(--green); background: var(--green-bg); }
+    .chip.miss { color: var(--red); background: var(--red-bg); }
+    .chip.new { color: var(--violet); background: var(--violet-bg); }
+    .chip.chg { color: var(--green); background: var(--green-bg); }
+    .chip.read { color: var(--accent); border: 1px solid var(--accent); }
+
+    .v-undef { color: var(--muted); font-style: italic; }
+    .v-tdz { color: var(--red); font-style: italic; font-weight: 600; }
+    .v-num { color: var(--amber); font-weight: 600; }
+    .v-str { color: var(--str); }
+    .v-fn { color: var(--accent); font-weight: 600; }
+    .v-none { color: var(--muted); }
+
+    .hint { margin-top: 8px; font-size: 11px; color: var(--muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>⚙️ 실행 컨텍스트 시뮬레이터</h1>
+    <select id="scenario-select"></select>
+  </div>
+  <div class="subtitle" id="subtitle"></div>
+
+  <div class="controls">
+    <button id="btn-reset" title="처음으로">⏮</button>
+    <button id="btn-prev">◀ 이전</button>
+    <button id="btn-next">다음 ▶</button>
+    <span class="counter" id="counter"></span>
+    <span class="dots" id="dots"></span>
+  </div>
+
+  <div class="phase" id="phase"></div>
+
+  <div class="toprow">
+    <div>
+      <div class="codebox">
+        <div class="cap">code</div>
+        <div class="code" id="code"></div>
+      </div>
+      <div class="console">
+        <div class="cap">console</div>
+        <div class="lines" id="console-lines"></div>
+      </div>
+    </div>
+    <div class="desc" id="desc"></div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram" id="diagram">
+      <svg id="arrows"></svg>
+      <div class="bands" id="bands"></div>
+    </div>
+  </div>
+  <div class="hint">◀ ▶ 버튼 또는 키보드 화살표로 단계를 이동해보세요 — 테두리 강조가 "엔진이 지금 보는 곳"입니다</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// 데이터 모델
+//  - 다이어그램의 박스 배치는 시나리오 내내 고정된다 (책 23장 그림 스타일)
+//  - 스텝마다 바뀌는 것: 값(vals), 상태(envState), 스택(stack),
+//    포인터(ptr: LexicalEnvironment / outer 참조), 강조(focus)만
+//  - 모든 시나리오 코드는 examples/ch23/*.js 로 node에서 실제 실행해 검증했다
+// 값 표기: 'ƒ ...' 함수, '<uninitialized>' TDZ, undefined/문자/숫자
+// focus: [{id, mark}] — mark: new(등록)|chg(변경)|read(읽힘)|hit(✓발견)|miss(✗없음)
+// ─────────────────────────────────────────────────────────────
+const TDZ = '<uninitialized>';
+const UNDEF = 'undefined';
+
+// 전역 렉시컬 환경 정의 헬퍼 (objB: 객체 ER 바인딩, decB: 선언적 ER 바인딩)
+function genvDef(objB, decB) {
+  return {
+    id: 'eg', label: '전역 렉시컬 환경',
+    ths: '[[GlobalThisValue]]: globalThis',
+    records: [
+      { id: 'go', name: '객체 환경 레코드', note: 'BindingObject → globalThis', bindings: objB },
+      { id: 'gd', name: '선언적 환경 레코드', bindings: decB },
+    ],
+  };
+}
+const ECG = { id: 'ecg', label: '전역 실행 컨텍스트', band: 'eg' };
+
+const SCENARIOS = [
+
+// ── 1. var 호이스팅 ─────────────────────────────────────────
+{
+  id: 'var-hoisting',
+  title: '1. var 호이스팅 — 선언보다 위에서 써도 되는 이유',
+  subtitle: '평가 단계에 var 선언이 미리 등록되기 때문에, 선언문 위에서 접근해도 에러가 아니라 undefined다.',
+  code: ['console.log(x);', 'x = 1;', 'console.log(x);', 'var x = 2;', 'console.log(x);'],
+  ecs: [ECG],
+  envs: [genvDef([{ id: 'x', name: 'x' }], [])],
+  steps: [
+    { phase: 'eval', line: null, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: {},
+      focus: [{ id: 'ecg' }, { id: 'eg' }],
+      desc: '코드를 실행하기 전, <b>평가 단계</b>가 먼저 온다. 전역 실행 컨텍스트를 만들어 스택에 push하고, 전역 렉시컬 환경을 구성한다. <code>x</code> 칸이 아직 비어 있는 것(미등록)에 주목.' },
+    { phase: 'eval', line: 3, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: UNDEF },
+      focus: [{ id: 'x', mark: 'new' }],
+      desc: '평가 단계에서 코드 전체를 훑다가 <code>var x</code> 선언을 발견 → <b>객체 환경 레코드</b>에 <code>x</code>를 등록하고 <code>undefined</code>로 초기화한다 (= <code>globalThis.x</code>가 생긴다). 값 <code>2</code>의 할당은 실행 단계의 일이라 아직 하지 않는다.' },
+    { phase: 'run', line: 0, out: ['undefined'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: UNDEF },
+      focus: [{ id: 'gd', mark: 'miss' }, { id: 'go', mark: 'hit' }, { id: 'x', mark: 'read' }],
+      desc: '<b>실행 단계</b> 시작. <code>x</code>를 검색: 선언적 환경 레코드에 없음 → 객체 환경 레코드에서 발견, 값은 <code>undefined</code>. 그래서 에러가 아니라 <code>undefined</code>가 출력된다 — 이것이 호이스팅의 정체다.' },
+    { phase: 'run', line: 1, out: ['undefined'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: '1' },
+      focus: [{ id: 'x', mark: 'chg' }],
+      desc: '<code>x = 1</code> 할당. 선언문보다 위지만 <code>x</code>는 이미 평가 단계에 등록되어 있으므로 문제없이 값이 바뀐다.' },
+    { phase: 'run', line: 2, out: ['undefined', '1'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: '1' },
+      focus: [{ id: 'x', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 객체 환경 레코드에서 <code>1</code> 발견 → 출력.' },
+    { phase: 'run', line: 3, out: ['undefined', '1'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: '2' },
+      focus: [{ id: 'x', mark: 'chg' }],
+      desc: '<code>var x = 2</code>에 도달. <b>선언은 평가 단계에 이미 끝났다.</b> 실행 단계의 이 줄은 사실상 할당문 <code>x = 2</code>일 뿐이다.' },
+    { phase: 'run', line: 4, out: ['undefined', '1', '2'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: '2' },
+      focus: [{ id: 'x', mark: 'read' }],
+      desc: '<code>x</code> 검색 → <code>2</code> 출력.' },
+    { phase: 'run', line: null, out: ['undefined', '1', '2'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: '2' },
+      focus: [],
+      desc: '전역 코드 실행 종료. 정리: <b>등록(평가)</b>과 <b>할당(실행)</b>이 서로 다른 단계에 일어난다는 것 — 이 분리가 호이스팅이라는 현상을 만든다.' },
+  ],
+},
+
+// ── 2. const와 TDZ ─────────────────────────────────────────
+{
+  id: 'const-tdz',
+  title: '2. const와 TDZ — 호이스팅은 되는데 에러가 나는 이유',
+  subtitle: 'const도 평가 단계에 등록된다. 하지만 undefined가 아니라 <uninitialized> 상태로 등록되는 게 var와의 차이다.',
+  code: ['console.log(x);', 'const x = 1;', 'console.log(x);'],
+  ecs: [ECG],
+  envs: [genvDef([], [{ id: 'x', name: 'x' }])],
+  steps: [
+    { phase: 'eval', line: null, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: {},
+      focus: [{ id: 'ecg' }, { id: 'eg' }],
+      desc: '평가 단계: 전역 실행 컨텍스트 생성 & push.' },
+    { phase: 'eval', line: 1, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: TDZ },
+      focus: [{ id: 'x', mark: 'new' }],
+      desc: '<code>const x</code> 선언 발견 → 이번엔 <b>선언적 환경 레코드</b>에 등록된다 (var와 저장 위치부터 다르다!). 그리고 <code>undefined</code>로 초기화하지 않고 <b>&lt;uninitialized&gt;</b> 상태로 둔다. 여기서부터 초기화 줄에 도달할 때까지가 <b>TDZ(일시적 사각지대)</b>다.' },
+    { phase: 'error', line: 0, out: ['⛔ ReferenceError: Cannot access \'x\' before initialization'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: TDZ },
+      focus: [{ id: 'gd', mark: 'hit' }, { id: 'x', mark: 'read' }],
+      desc: '실행 단계 첫 줄. <code>x</code>를 검색하면 선언적 환경 레코드에서 <b>발견은 된다</b>. 하지만 값이 &lt;uninitialized&gt; → <code>ReferenceError</code>. 메시지를 보라: "x is not defined"가 아니라 <b>"Cannot access \'x\' before initialization"</b> — 엔진은 x의 존재를 이미 알고 있다. 즉 호이스팅은 됐다.' },
+    { phase: 'error', line: null, out: ['⛔ ReferenceError: Cannot access \'x\' before initialization'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: TDZ },
+      focus: [],
+      desc: '에러로 실행이 중단됐다. <code>const x = 1</code> 줄에는 영영 도달하지 못한다. 시나리오 1과 비교: var였다면 이 자리에서 <code>undefined</code>가 출력되고 실행이 계속됐을 것이다.' },
+  ],
+},
+
+// ── 3. 함수 선언문 + 컨텍스트 스택 ──────────────────────────
+{
+  id: 'fn-decl',
+  title: '3. 함수 선언문 호이스팅 + 실행 컨텍스트 스택',
+  subtitle: '함수 선언문은 평가 단계에 함수 객체가 통째로 만들어진다. 그리고 호출할 때마다 컨텍스트가 push/pop 된다.',
+  code: ['sayHi();', '', 'function sayHi() {', "  var msg = 'hi';", '  console.log(msg);', '}', '', 'sayHi();'],
+  ecs: [{ id: 'ecf', label: 'sayHi 실행 컨텍스트', band: 'ef' }, ECG],
+  envs: [
+    { id: 'ef', label: 'sayHi 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'fr', name: '함수 환경 레코드', bindings: [{ id: 'msg', name: 'msg' }] }] },
+    genvDef([{ id: 'sayHi', name: 'sayHi' }], []),
+  ],
+  steps: [
+    { phase: 'eval', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi' },
+      envState: { ef: 'ghost' },
+      focus: [{ id: 'sayHi', mark: 'new' }],
+      desc: '평가 단계: 전역 실행 컨텍스트 생성. 함수 <b>선언문</b>을 발견하면 <b>함수 객체를 지금 바로 생성</b>해서 객체 환경 레코드에 바인딩한다. 이때 함수 객체의 내부 슬롯 <code>[[Environment]]</code>에 현재 환경(전역)이 저장된다. sayHi 쪽 박스들은 아직 흐릿하다 — 호출 전이니까.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi' },
+      envState: { ef: 'ghost' },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'sayHi', mark: 'read' }],
+      desc: '실행 단계 시작. <code>sayHi</code> 검색 → 객체 환경 레코드에서 <b>완성된 함수 객체</b> 발견 → 호출 가능! 선언문보다 위인데 성공하는 이유는 평가 단계에 함수가 이미 만들어져 있기 때문이다.' },
+    { phase: 'eval', line: 3, out: [], stack: ['ecg', 'ecf'],
+      ptr: { ecg: 'eg', ecf: 'ef', 'ef.outer': 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi', msg: UNDEF },
+      focus: [{ id: 'ecf' }, { id: 'ef' }, { id: 'msg', mark: 'new' }],
+      desc: '호출되면 <b>sayHi 실행 컨텍스트</b>가 생성되어 스택에 push된다. 그리고 함수 몸통도 <b>평가부터</b> 한다: 함수 환경 레코드에 <code>msg: undefined</code> 등록. outer 참조는 <code>sayHi.[[Environment]]</code>에 저장해둔 전역 환경 — 화살표가 연결됐다.' },
+    { phase: 'run', line: 3, out: [], stack: ['ecg', 'ecf'],
+      ptr: { ecg: 'eg', ecf: 'ef', 'ef.outer': 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi', msg: "'hi'" },
+      focus: [{ id: 'msg', mark: 'chg' }],
+      desc: '함수 몸통 실행: <code>msg = \'hi\'</code> 할당.' },
+    { phase: 'run', line: 4, out: ['hi'], stack: ['ecg', 'ecf'],
+      ptr: { ecg: 'eg', ecf: 'ef', 'ef.outer': 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi', msg: "'hi'" },
+      focus: [{ id: 'fr', mark: 'hit' }, { id: 'msg', mark: 'read' }],
+      desc: '<code>msg</code> 검색 → 자기 함수 환경에서 바로 발견 → <code>hi</code> 출력.' },
+    { phase: 'run', line: 5, out: ['hi'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi' },
+      envState: { ef: 'dead' },
+      focus: [{ id: 'ecg' }],
+      desc: '함수 코드가 끝나면 sayHi 실행 컨텍스트가 스택에서 <b>pop</b>되고, 제어권이 전역 코드로 돌아온다. sayHi의 환경은 아무도 참조하지 않으므로 소멸 대상이 된다 (흐려짐).' },
+    { phase: 'run', line: 7, out: ['hi', 'hi'], stack: ['ecg', 'ecf'],
+      ptr: { ecg: 'eg', ecf: 'ef', 'ef.outer': 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi', msg: "'hi'" },
+      focus: [{ id: 'ecf' }, { id: 'ef' }],
+      desc: '두 번째 호출. push → 함수 코드 평가 → 실행 → pop 과정이 <b>똑같이 반복</b>된다. 호출할 때마다 <b>새</b> 실행 컨텍스트와 <b>새</b> 함수 환경이 만들어진다 — 아까 그 환경의 부활이 아니다.' },
+    { phase: 'run', line: null, out: ['hi', 'hi'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { sayHi: 'ƒ sayHi' },
+      envState: { ef: 'dead' },
+      focus: [],
+      desc: '두 번째 컨텍스트도 pop. 전역 코드가 끝나면 전역 실행 컨텍스트도 pop되고 스택이 빈다.' },
+  ],
+},
+
+// ── 4. 함수 표현식 ─────────────────────────────────────────
+{
+  id: 'fn-expr',
+  title: '4. 함수 표현식은 왜 미리 호출 못 할까',
+  subtitle: '변수 greet는 호이스팅되지만, 함수 객체를 만드는 것은 실행 단계의 일이다.',
+  code: ['greet();', '', 'var greet = function () {', "  console.log('hello');", '};', '', 'greet();'],
+  ecs: [ECG],
+  envs: [genvDef([{ id: 'greet', name: 'greet' }], [])],
+  steps: [
+    { phase: 'eval', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { greet: UNDEF },
+      focus: [{ id: 'greet', mark: 'new' }],
+      desc: '평가 단계: <code>var greet</code> 선언 발견 → 객체 환경 레코드에 <code>greet: undefined</code> 등록. <b>함수 객체는 만들지 않는다!</b> <code>= function () {...}</code>는 할당식, 즉 실행 단계의 일이기 때문이다. 시나리오 3의 함수 선언문과 결정적으로 다른 지점.' },
+    { phase: 'error', line: 0, out: ['⛔ TypeError: greet is not a function'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { greet: UNDEF },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'greet', mark: 'read' }],
+      desc: '실행 단계 첫 줄. <code>greet</code> 검색 → 발견되긴 하는데 값이 <code>undefined</code> → <code>undefined()</code>를 호출하는 셈 → <code>TypeError</code>. <b>ReferenceError가 아니라 TypeError</b>인 것에 주목 — 식별자는 존재한다(호이스팅은 됐다). 값이 함수가 아닐 뿐.' },
+    { phase: 'error', line: null, out: ['⛔ TypeError: greet is not a function'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { greet: UNDEF },
+      focus: [],
+      desc: '에러로 실행 중단. 함수 객체가 만들어지는 <code>var greet = function...</code> 줄에는 도달하지 못했다. 에러 종류 3종 비교 — 시나리오 2: ReferenceError(TDZ), 여기: TypeError(undefined 호출), 시나리오 6a: SyntaxError(평가 자체가 실패).' },
+  ],
+},
+
+// ── 5. 식별자 검색 ─────────────────────────────────────────
+{
+  id: 'lookup',
+  title: '5. 식별자 검색 — 없으면 outer를 따라 바깥으로',
+  subtitle: '현재 환경에서 못 찾으면 outer 참조를 따라 한 단계씩 올라간다. 체인 끝(null)까지 가면 ReferenceError.',
+  code: ["const a = 'outer';", '', '{', "  const b = 'block';", '  console.log(b);', '  console.log(a);', '  console.log(c);', '}'],
+  ecs: [ECG],
+  envs: [
+    { id: 'eb', label: '블록 렉시컬 환경',
+      records: [{ id: 'br', name: '선언적 환경 레코드', bindings: [{ id: 'b', name: 'b' }] }] },
+    genvDef([], [{ id: 'a', name: 'a' }]),
+  ],
+  steps: [
+    { phase: 'eval', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { a: TDZ },
+      envState: { eb: 'ghost' },
+      focus: [{ id: 'a', mark: 'new' }],
+      desc: '평가 단계: 전역 선언적 환경 레코드에 <code>a: &lt;uninitialized&gt;</code> 등록. 블록 안의 <code>const b</code>는 지금 등록되지 않는다 — 블록 환경(흐릿한 박스)은 실행 중 블록에 <b>진입할 때</b> 만들어지기 때문.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { a: "'outer'" },
+      envState: { eb: 'ghost' },
+      focus: [{ id: 'a', mark: 'chg' }],
+      desc: '실행: <code>a</code>를 <code>\'outer\'</code>로 초기화. TDZ 종료.' },
+    { phase: 'run', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { a: "'outer'", b: TDZ },
+      focus: [{ id: 'eb' }, { id: 'b', mark: 'new' }],
+      desc: '블록 진입! 블록 렉시컬 환경이 실제로 만들어지고(<code>b: &lt;uninitialized&gt;</code>), 전역 실행 컨텍스트의 <b>LexicalEnvironment 화살표가 블록 환경으로 이동</b>했다. outer 참조는 직전 환경(전역)을 가리킨다. 스택은 그대로!' },
+    { phase: 'run', line: 3, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { a: "'outer'", b: "'block'" },
+      focus: [{ id: 'b', mark: 'chg' }],
+      desc: '<code>b</code>를 <code>\'block\'</code>으로 초기화.' },
+    { phase: 'run', line: 4, out: ['block'], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { a: "'outer'", b: "'block'" },
+      focus: [{ id: 'br', mark: 'hit' }, { id: 'b', mark: 'read' }],
+      desc: '<code>b</code> 검색: <b>블록 환경에서 즉시 발견 ✓</b> → 출력. 검색은 항상 현재 환경(LexicalEnvironment가 가리키는 곳)에서 시작한다.' },
+    { phase: 'run', line: 5, out: ['block', 'outer'], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { a: "'outer'", b: "'block'" },
+      focus: [{ id: 'br', mark: 'miss' }, { id: 'gd', mark: 'hit' }, { id: 'a', mark: 'read' }],
+      desc: '<code>a</code> 검색: 블록 환경 <b>✗ 없음</b> → outer 화살표를 따라 전역으로 → 선언적 환경 레코드에서 <b>✓ 발견</b> → 출력. 강조가 흘러가는 경로가 곧 스코프 체인이다.' },
+    { phase: 'error', line: 6, out: ['block', 'outer', '⛔ ReferenceError: c is not defined'], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { a: "'outer'", b: "'block'" },
+      focus: [{ id: 'br', mark: 'miss' }, { id: 'gd', mark: 'miss' }, { id: 'go', mark: 'miss' }],
+      desc: '<code>c</code> 검색: 블록 ✗ → 전역 선언적 ER ✗ → 전역 객체 ER ✗ → outer가 <code>null</code>, 체인의 끝 → <code>ReferenceError: c is not defined</code>. TDZ 때의 "Cannot access"와 메시지가 다른 이유: 이번엔 <b>정말 어디에도 없기</b> 때문.' },
+  ],
+},
+
+// ── 6a. let ↓ var 재선언 ───────────────────────────────────
+{
+  id: 'redeclare-err',
+  title: '6a. let 아래 블록의 var 재선언 → SyntaxError',
+  subtitle: '이 에러는 실행 중 에러가 아니다. 평가(파싱) 단계의 early error라서 코드가 한 줄도 실행되지 않는다.',
+  code: ["console.log('시작');", '', 'let x = 1;', '{', '  var x = 2;', '}'],
+  ecs: [ECG],
+  envs: [genvDef([{ id: 'vx', name: 'x' }], [{ id: 'lx', name: 'x' }])],
+  steps: [
+    { phase: 'error', line: 4, out: ['⛔ SyntaxError: Identifier \'x\' has already been declared'], stack: [],
+      ptr: {}, vals: {},
+      envState: { eg: 'ghost' },
+      focus: [{ id: 'vx', mark: 'miss' }, { id: 'lx', mark: 'miss' }],
+      desc: '평가(파싱) 단계에서 충돌 발견: 블록 안 <code>var x</code>는 블록을 뚫고 올라가 <b>전역 스코프 소속</b>(객체 환경 레코드행)이 되는데, 같은 스코프에 <code>let x</code>(선언적 환경 레코드행)가 이미 선언되어 있다 → <code>SyntaxError</code>. 다이어그램 전체가 흐릿한 이유: <b>실행 컨텍스트가 만들어지기도 전</b>에 나는 early error이기 때문.' },
+    { phase: 'error', line: 0, out: ['⛔ SyntaxError: Identifier \'x\' has already been declared'], stack: [],
+      ptr: {}, vals: {},
+      envState: { eg: 'ghost' },
+      focus: [],
+      desc: '결정적 증거: <b>첫 줄 <code>console.log(\'시작\')</code>조차 출력되지 않았다.</b> 실행 단계가 시작조차 안 된 것이다. 시나리오 2의 ReferenceError(실행 중에 그 줄에 도달해야 발생)와 에러가 나는 <b>단계 자체가 다르다</b>. <code>node examples/ch23/006a-let-then-var.js</code>로 직접 확인해보자.' },
+  ],
+},
+
+// ── 6b. var ↓ let 재선언 ───────────────────────────────────
+{
+  id: 'redeclare-ok',
+  title: '6b. var 아래 블록의 let 재선언 → 성공',
+  subtitle: '블록의 let x는 블록 전용 환경 레코드에 따로 등록되므로 바깥 var x와 충돌하지 않는다.',
+  code: ['var x = 1;', '{', '  let x = 2;', '  console.log(x);', '}', 'console.log(x);'],
+  ecs: [ECG],
+  envs: [
+    { id: 'eb', label: '블록 렉시컬 환경',
+      records: [{ id: 'br', name: '선언적 환경 레코드', bindings: [{ id: 'bx', name: 'x' }] }] },
+    genvDef([{ id: 'gx', name: 'x' }], []),
+  ],
+  steps: [
+    { phase: 'eval', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { gx: UNDEF },
+      envState: { eb: 'ghost' },
+      focus: [{ id: 'gx', mark: 'new' }],
+      desc: '평가 단계: 객체 환경 레코드에 <code>x: undefined</code> 등록. 블록 안의 <code>let x</code>는 지금 아무 일도 하지 않는다 — 블록 환경은 실행 중에 만들어지므로 <b>충돌 검사에서 서로 다른 스코프</b>로 판정, SyntaxError가 아니다.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { gx: '1' },
+      envState: { eb: 'ghost' },
+      focus: [{ id: 'gx', mark: 'chg' }],
+      desc: '실행: <code>x = 1</code> 할당.' },
+    { phase: 'run', line: 1, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { gx: '1', bx: TDZ },
+      focus: [{ id: 'eb' }, { id: 'bx', mark: 'new' }],
+      desc: '블록 진입 → 블록 환경 생성(<code>x: &lt;uninitialized&gt;</code>), LexicalEnvironment 화살표가 블록으로 이동. 이름은 같지만 <b>서로 다른 레코드에 사는 다른 변수</b>다 — 표가 두 개인 것이 그 증거.' },
+    { phase: 'run', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { gx: '1', bx: '2' },
+      focus: [{ id: 'bx', mark: 'chg' }],
+      desc: '블록의 <code>x = 2</code> 초기화. 이제 블록 안에서 <code>x</code> 검색은 블록 환경에서 끝난다 → 바깥 <code>x = 1</code>은 가려진다(shadowing).' },
+    { phase: 'run', line: 3, out: ['2'], stack: ['ecg'],
+      ptr: { ecg: 'eb', 'eb.outer': 'eg', 'eg.outer': null }, vals: { gx: '1', bx: '2' },
+      focus: [{ id: 'br', mark: 'hit' }, { id: 'bx', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 블록 환경에서 ✓ 발견 → <code>2</code> 출력. 전역의 x까지 가지 않는다.' },
+    { phase: 'run', line: 4, out: ['2'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { gx: '1' },
+      envState: { eb: 'dead' },
+      focus: [{ id: 'ecg' }],
+      desc: '블록 탈출 → LexicalEnvironment 화살표가 전역 환경으로 <b>복원</b>. 블록 환경은 소멸 대상 (흐려짐).' },
+    { phase: 'run', line: 5, out: ['2', '1'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { gx: '1' },
+      envState: { eb: 'dead' },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'gx', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 전역 객체 환경 레코드 → <code>1</code> 출력. 블록 안의 <code>2</code>는 흔적도 없다.' },
+  ],
+},
+
+// ── 7. 블록별 환경 교체 ────────────────────────────────────
+{
+  id: 'block-swap',
+  title: '7. 블록마다 갈아끼워지는 렉시컬 환경',
+  subtitle: '블록은 새 실행 컨텍스트를 만들지 않는다. LexicalEnvironment 화살표가 어디를 가리키는지만 계속 바뀐다.',
+  code: ['let x = 1;', '{', '  let x = 2;', '  {', '    let x = 3;', '    console.log(x);', '  }', '  console.log(x);', '}', 'console.log(x);'],
+  ecs: [ECG],
+  envs: [
+    { id: 'e2', label: '블록2 렉시컬 환경',
+      records: [{ id: 'r2', name: '선언적 환경 레코드', bindings: [{ id: 'x2', name: 'x' }] }] },
+    { id: 'e1', label: '블록1 렉시컬 환경',
+      records: [{ id: 'r1', name: '선언적 환경 레코드', bindings: [{ id: 'x1', name: 'x' }] }] },
+    genvDef([], [{ id: 'x0', name: 'x' }]),
+  ],
+  steps: [
+    { phase: 'eval', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x0: TDZ },
+      envState: { e1: 'ghost', e2: 'ghost' },
+      focus: [{ id: 'x0', mark: 'new' }],
+      desc: '평가 단계: 전역 선언적 환경 레코드에 <code>x</code> 등록. 블록 환경 둘은 아직 흐릿하다. 이 시나리오 내내 <b>스택에는 전역 컨텍스트 하나뿐</b>이라는 것과, LexicalEnvironment <b>화살표만 이동</b>하는 것을 지켜보자.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x0: '1' },
+      envState: { e1: 'ghost', e2: 'ghost' },
+      focus: [{ id: 'x0', mark: 'chg' }],
+      desc: '<code>x = 1</code> 초기화.' },
+    { phase: 'run', line: 1, out: [], stack: ['ecg'],
+      ptr: { ecg: 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: TDZ },
+      envState: { e2: 'ghost' },
+      focus: [{ id: 'e1' }, { id: 'x1', mark: 'new' }],
+      desc: '블록1 진입: 환경 생성, <b>LexicalEnvironment 화살표가 블록1로 이동</b>. 스택은 변화 없음! 컨텍스트는 그대로고 화살표만 움직였다.' },
+    { phase: 'run', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2' },
+      envState: { e2: 'ghost' },
+      focus: [{ id: 'x1', mark: 'chg' }],
+      desc: '블록1의 <code>x = 2</code> 초기화.' },
+    { phase: 'run', line: 3, out: [], stack: ['ecg'],
+      ptr: { ecg: 'e2', 'e2.outer': 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2', x2: TDZ },
+      focus: [{ id: 'e2' }, { id: 'x2', mark: 'new' }],
+      desc: '블록2 진입: 화살표가 또 이동. 체인이 <b>블록2 → 블록1 → 전역</b> 3단이 됐다. 같은 이름 x가 세 표에 각각 산다.' },
+    { phase: 'run', line: 4, out: [], stack: ['ecg'],
+      ptr: { ecg: 'e2', 'e2.outer': 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2', x2: '3' },
+      focus: [{ id: 'x2', mark: 'chg' }],
+      desc: '블록2의 <code>x = 3</code> 초기화.' },
+    { phase: 'run', line: 5, out: ['3'], stack: ['ecg'],
+      ptr: { ecg: 'e2', 'e2.outer': 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2', x2: '3' },
+      focus: [{ id: 'r2', mark: 'hit' }, { id: 'x2', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 블록2에서 즉시 ✓ → <code>3</code>. 검색은 발견되는 순간 끝난다 — 바깥의 2와 1은 아예 보이지도 않는다.' },
+    { phase: 'run', line: 6, out: ['3'], stack: ['ecg'],
+      ptr: { ecg: 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2' },
+      envState: { e2: 'dead' },
+      focus: [{ id: 'e1' }],
+      desc: '블록2 탈출: 화살표가 블록1로 <b>복원</b>. 블록2 환경은 아무도 참조하지 않으니 소멸 대상.' },
+    { phase: 'run', line: 7, out: ['3', '2'], stack: ['ecg'],
+      ptr: { ecg: 'e1', 'e1.outer': 'eg', 'eg.outer': null }, vals: { x0: '1', x1: '2' },
+      envState: { e2: 'dead' },
+      focus: [{ id: 'r1', mark: 'hit' }, { id: 'x1', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 블록1에서 ✓ → <code>2</code>.' },
+    { phase: 'run', line: 8, out: ['3', '2'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x0: '1' },
+      envState: { e1: 'dead', e2: 'dead' },
+      focus: [{ id: 'ecg' }],
+      desc: '블록1 탈출: 화살표가 전역 환경으로 복원.' },
+    { phase: 'run', line: 9, out: ['3', '2', '1'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x0: '1' },
+      envState: { e1: 'dead', e2: 'dead' },
+      focus: [{ id: 'gd', mark: 'hit' }, { id: 'x0', mark: 'read' }],
+      desc: '<code>x</code> 검색 → 전역에서 ✓ → <code>1</code>. 정리: 실행 컨텍스트는 하나였지만 LexicalEnvironment 화살표는 실행 흐름을 따라 계속 이동했다.' },
+  ],
+},
+
+// ── 8. 중첩 함수 + [[Environment]] ─────────────────────────
+{
+  id: 'nested-fn',
+  title: '8. 중첩 함수와 [[Environment]] 내부 슬롯',
+  subtitle: '함수 객체는 태어날 때 자신이 만들어진 환경을 [[Environment]]에 기억하고, 호출될 때 그것을 outer로 삼는다.',
+  code: ["const x = 'global';", '', 'function outer() {', "  const y = 'outer';", '  function inner() {', '    console.log(y);', '    console.log(x);', '  }', '  inner();', '}', '', 'outer();'],
+  ecs: [
+    { id: 'eci', label: 'inner 실행 컨텍스트', band: 'ei' },
+    { id: 'eco', label: 'outer 실행 컨텍스트', band: 'eo' },
+    ECG,
+  ],
+  envs: [
+    { id: 'ei', label: 'inner 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'ri', name: '함수 환경 레코드', bindings: [] }] },
+    { id: 'eo', label: 'outer 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'ro', name: '함수 환경 레코드', bindings: [{ id: 'y', name: 'y' }, { id: 'inner', name: 'inner' }] }] },
+    genvDef([{ id: 'outer', name: 'outer' }], [{ id: 'x', name: 'x' }]),
+  ],
+  steps: [
+    { phase: 'eval', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: TDZ, outer: 'ƒ outer ⟨[[Environment]]→전역⟩' },
+      envState: { eo: 'ghost', ei: 'ghost' },
+      focus: [{ id: 'outer', mark: 'new' }, { id: 'x', mark: 'new' }],
+      desc: '평가 단계: <code>x</code> 등록, 그리고 함수 선언문 <code>outer</code> → 함수 객체 생성. 이때 <code>outer.[[Environment]] ← 전역 환경</code>이 저장된다. 함수는 <b>자기가 태어난 곳</b>을 기억한다.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩' },
+      envState: { eo: 'ghost', ei: 'ghost' },
+      focus: [{ id: 'x', mark: 'chg' }],
+      desc: '<code>x = \'global\'</code> 초기화.' },
+    { phase: 'run', line: 11, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩' },
+      envState: { eo: 'ghost', ei: 'ghost' },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'outer', mark: 'read' }],
+      desc: '<code>outer()</code> 호출.' },
+    { phase: 'eval', line: 4, out: [], stack: ['ecg', 'eco'],
+      ptr: { ecg: 'eg', eco: 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: TDZ, inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      envState: { ei: 'ghost' },
+      focus: [{ id: 'eco' }, { id: 'eo' }, { id: 'y', mark: 'new' }, { id: 'inner', mark: 'new' }],
+      desc: 'outer 실행 컨텍스트 push. outer 환경의 outer 참조 ← <code>outer.[[Environment]]</code>(전역). 함수 몸통 평가: <code>y</code> 등록, 그리고 <b><code>inner</code> 함수 객체가 지금 생성</b>되며 <code>inner.[[Environment]] ← 현재(outer의) 환경</code>이 저장된다. 어디서 호출될지와 무관하게 <b>지금 결정</b>된다 — 렉시컬 스코프의 실체.' },
+    { phase: 'run', line: 3, out: [], stack: ['ecg', 'eco'],
+      ptr: { ecg: 'eg', eco: 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      envState: { ei: 'ghost' },
+      focus: [{ id: 'y', mark: 'chg' }],
+      desc: '<code>y = \'outer\'</code> 초기화.' },
+    { phase: 'run', line: 8, out: [], stack: ['ecg', 'eco'],
+      ptr: { ecg: 'eg', eco: 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      envState: { ei: 'ghost' },
+      focus: [{ id: 'ro', mark: 'hit' }, { id: 'inner', mark: 'read' }],
+      desc: '<code>inner()</code> 호출.' },
+    { phase: 'eval', line: 5, out: [], stack: ['ecg', 'eco', 'eci'],
+      ptr: { ecg: 'eg', eco: 'eo', eci: 'ei', 'ei.outer': 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      focus: [{ id: 'eci' }, { id: 'ei' }],
+      desc: 'inner 실행 컨텍스트 push. inner 환경의 outer 참조 ← <code>inner.[[Environment]]</code> = <b>outer의 환경</b>. 체인이 inner → outer → 전역으로 <b>실시간 조립</b>됐다. 스택도 3층.' },
+    { phase: 'run', line: 5, out: ['outer'], stack: ['ecg', 'eco', 'eci'],
+      ptr: { ecg: 'eg', eco: 'eo', eci: 'ei', 'ei.outer': 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      focus: [{ id: 'ri', mark: 'miss' }, { id: 'ro', mark: 'hit' }, { id: 'y', mark: 'read' }],
+      desc: '<code>y</code> 검색: inner 환경 ✗ → outer 환경 ✓ → <code>outer</code> 출력. 내부 함수가 바깥 함수의 변수를 읽을 수 있는 이유가 바로 이 체인이다.' },
+    { phase: 'run', line: 6, out: ['outer', 'global'], stack: ['ecg', 'eco', 'eci'],
+      ptr: { ecg: 'eg', eco: 'eo', eci: 'ei', 'ei.outer': 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      focus: [{ id: 'ri', mark: 'miss' }, { id: 'ro', mark: 'miss' }, { id: 'gd', mark: 'hit' }, { id: 'x', mark: 'read' }],
+      desc: '<code>x</code> 검색: inner ✗ → outer ✗ → 전역 ✓ → <code>global</code> 출력. 두 단계를 올라갔다.' },
+    { phase: 'run', line: 7, out: ['outer', 'global'], stack: ['ecg', 'eco'],
+      ptr: { ecg: 'eg', eco: 'eo', 'eo.outer': 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩', y: "'outer'", inner: 'ƒ inner ⟨[[Environment]]→outer 환경⟩' },
+      envState: { ei: 'dead' },
+      focus: [{ id: 'eco' }],
+      desc: 'inner 종료 → pop. outer 컨텍스트로 복귀.' },
+    { phase: 'run', line: 9, out: ['outer', 'global'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null },
+      vals: { x: "'global'", outer: 'ƒ outer ⟨[[Environment]]→전역⟩' },
+      envState: { ei: 'dead', eo: 'dead' },
+      focus: [],
+      desc: 'outer 종료 → pop. 전역만 남고 종료. outer/inner의 환경은 이제 아무도 참조하지 않으므로 함께 소멸한다 — 다음 시나리오에서는 <b>소멸하지 않는 경우</b>를 본다.' },
+  ],
+},
+
+// ── 9. 클로저 예고편 ───────────────────────────────────────
+{
+  id: 'closure',
+  title: '9. 예고편: pop 됐는데 살아남는 환경 (클로저)',
+  subtitle: '실행 컨텍스트가 pop돼도, 반환된 함수의 [[Environment]]가 참조하는 환경은 소멸하지 않는다.',
+  code: ['function counter() {', '  let n = 0;', '  return function () {', '    n += 1;', '    return n;', '  };', '}', '', 'const inc = counter();', 'console.log(inc());', 'console.log(inc());'],
+  ecs: [
+    { id: 'eca', label: '익명 함수 실행 컨텍스트', band: 'ea' },
+    { id: 'ecc', label: 'counter 실행 컨텍스트', band: 'ec2' },
+    ECG,
+  ],
+  envs: [
+    { id: 'ea', label: '익명 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'ra', name: '함수 환경 레코드', bindings: [] }] },
+    { id: 'ec2', label: 'counter 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'rc', name: '함수 환경 레코드', bindings: [{ id: 'n', name: 'n' }] }] },
+    genvDef([{ id: 'counter', name: 'counter' }], [{ id: 'inc', name: 'inc' }]),
+  ],
+  steps: [
+    { phase: 'eval', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: TDZ },
+      envState: { ec2: 'ghost', ea: 'ghost' },
+      focus: [{ id: 'counter', mark: 'new' }, { id: 'inc', mark: 'new' }],
+      desc: '평가 단계: <code>counter</code> 함수 객체 생성(객체 환경 레코드), <code>inc</code>는 <code>&lt;uninitialized&gt;</code>로 등록(선언적 환경 레코드).' },
+    { phase: 'run', line: 8, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null }, vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: TDZ },
+      envState: { ec2: 'ghost', ea: 'ghost' },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'counter', mark: 'read' }],
+      desc: '<code>counter()</code> 호출.' },
+    { phase: 'eval', line: 1, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: TDZ, n: TDZ },
+      envState: { ea: 'ghost' },
+      focus: [{ id: 'ecc' }, { id: 'ec2' }, { id: 'n', mark: 'new' }],
+      desc: 'counter 실행 컨텍스트 push. counter 함수 환경 생성: <code>n: &lt;uninitialized&gt;</code> 등록.' },
+    { phase: 'run', line: 1, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: TDZ, n: '0' },
+      envState: { ea: 'ghost' },
+      focus: [{ id: 'n', mark: 'chg' }],
+      desc: '<code>n = 0</code> 초기화.' },
+    { phase: 'run', line: 2, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: TDZ, n: '0' },
+      envState: { ea: 'ghost' },
+      focus: [{ id: 'ec2' }],
+      desc: '<code>return function...</code> — 익명 함수 객체가 <b>지금 생성</b>되고, <code>[[Environment]] ← counter의 환경</code>(강조된 박스)이 저장된 채 반환된다.' },
+    { phase: 'run', line: 8, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '0' },
+      envState: { ea: 'ghost', ec2: 'detached' },
+      envNote: { ec2: '💚 생존 중 — inc의 [[Environment]]가 참조하고 있어서 소멸하지 않는다' },
+      focus: [{ id: 'inc', mark: 'chg' }, { id: 'ec2' }],
+      desc: 'counter 실행 컨텍스트 <b>pop</b>. 그런데 counter의 렉시컬 환경은 <b>소멸하지 않는다</b> — 방금 반환된 함수(이제 <code>inc</code>)의 <code>[[Environment]]</code>가 붙들고 있기 때문. 컨텍스트 박스는 흐려졌지만 환경 박스는 멀쩡한 것을 보라.' },
+    { phase: 'run', line: 9, out: [], stack: ['ecg', 'eca'],
+      ptr: { ecg: 'eg', eca: 'ea', 'ea.outer': 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '0' },
+      envState: { ec2: 'detached' },
+      envNote: { ec2: '💚 counter는 이미 종료됐지만 환경은 살아있다' },
+      focus: [{ id: 'eca' }, { id: 'ea' }],
+      desc: '<code>inc()</code> 호출 → 익명 함수 실행 컨텍스트 push. outer 참조 ← <code>inc.[[Environment]]</code> = <b>그 살아남은 counter 환경</b>. 죽지 않은 환경이 체인에 다시 연결된다.' },
+    { phase: 'run', line: 3, out: [], stack: ['ecg', 'eca'],
+      ptr: { ecg: 'eg', eca: 'ea', 'ea.outer': 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '1' },
+      envState: { ec2: 'detached' },
+      envNote: { ec2: '💚 종료된 함수의 변수를 읽고 쓰는 중' },
+      focus: [{ id: 'ra', mark: 'miss' }, { id: 'rc', mark: 'hit' }, { id: 'n', mark: 'chg' }],
+      desc: '<code>n += 1</code>: <code>n</code> 검색 → 익명 함수 환경 ✗ → counter 환경 ✓ → <code>0 → 1</code>로 변경. 종료된 함수의 변수를 읽고 <b>쓰기까지</b> 한다.' },
+    { phase: 'run', line: 4, out: ['1'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '1' },
+      envState: { ea: 'dead', ec2: 'detached' },
+      envNote: { ec2: '💚 여전히 생존 — n의 값이 유지되고 있다' },
+      focus: [{ id: 'n' }],
+      desc: '<code>return n</code>(= 1) → 익명 함수 컨텍스트 pop → <code>console.log</code>가 <code>1</code> 출력. counter 환경은 여전히 생존, <code>n = 1</code>도 그대로.' },
+    { phase: 'run', line: 10, out: ['1', '2'], stack: ['ecg', 'eca'],
+      ptr: { ecg: 'eg', eca: 'ea', 'ea.outer': 'ec2', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '2' },
+      envState: { ec2: 'detached' },
+      envNote: { ec2: '💚 같은 환경 재사용 — 그래서 n이 이어서 증가한다' },
+      focus: [{ id: 'ea' }, { id: 'rc', mark: 'hit' }, { id: 'n', mark: 'chg' }],
+      desc: '<code>inc()</code>를 다시 호출. 익명 함수 컨텍스트는 <b>새로</b> 만들어지지만, outer가 가리키는 counter 환경은 <b>아까 그 환경 그대로</b> → <code>n: 1 → 2</code> → <code>2</code> 출력. 호출 사이에 상태가 유지되는 이유다.' },
+    { phase: 'run', line: null, out: ['1', '2'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'ec2.outer': 'eg', 'eg.outer': null },
+      vals: { counter: 'ƒ counter ⟨[[Environment]]→전역⟩', inc: 'ƒ ⟨[[Environment]]→counter 환경⟩', n: '2' },
+      envState: { ea: 'dead', ec2: 'detached' },
+      envNote: { ec2: '💚 inc가 살아있는 한 계속 생존' },
+      focus: [],
+      desc: '종료. <code>inc</code>가 살아있는 한 counter의 환경도 계속 살아서 <code>n</code>을 기억한다 — <b>이것이 클로저다.</b> 자세한 이야기는 24장에서.' },
+  ],
+},
+];
+
+// ─────────────────────────────────────────────────────────────
+// 렌더링 — 박스 배치는 고정, 스텝은 값/상태/화살표/강조만 갱신
+// ─────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+let cur = SCENARIOS[0];
+let stepIdx = 0;
+
+const PHASE_INFO = {
+  eval:  { cls: 'p-eval',  icon: '🔍', label: '평가 단계', sub: '코드를 실행하기 전에 선언을 미리 등록한다' },
+  run:   { cls: 'p-run',   icon: '▶️', label: '실행 단계', sub: '코드를 위에서 아래로 한 줄씩 실행한다' },
+  error: { cls: 'p-error', icon: '💥', label: '에러', sub: '여기서 진행이 중단된다' },
+};
+const CHIP_LABEL = { new: '등록', chg: '변경', read: '읽음', hit: '✓ 발견', miss: '✗ 없음' };
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function fmtValue(v) {
+  if (v === undefined) return '<span class="v-none">—</span>';
+  if (v === TDZ) return '<span class="v-tdz">&lt;uninitialized&gt;</span>';
+  if (v === UNDEF) return '<span class="v-undef">undefined</span>';
+  if (v.startsWith('ƒ')) return '<span class="v-fn">' + esc(v) + '</span>';
+  if (v.startsWith("'")) return '<span class="v-str">' + esc(v) + '</span>';
+  if (/^-?\d/.test(v)) return '<span class="v-num">' + esc(v) + '</span>';
+  return esc(v);
+}
+
+// 다이어그램 뼈대 생성 — 시나리오 선택 시 1회만 실행 (박스 위치 고정의 핵심)
+function buildDiagram() {
+  const bands = $('bands');
+  let html = '';
+  cur.envs.forEach((env) => {
+    const ecsHere = cur.ecs.filter((ec) => ec.band === env.id);
+    html += '<div class="band">';
+    // 1열: 실행 컨텍스트 (스택 열)
+    html += '<div class="cell-ec">';
+    ecsHere.forEach((ec) => {
+      html += '<div class="node" id="node-' + ec.id + '">'
+        + '<table class="tb ec-tb"><thead><tr><th colspan="2">' + esc(ec.label)
+        + '<span class="state-tag" id="tag-' + ec.id + '"></span></th></tr></thead>'
+        + '<tr><td>LexicalEnvironment</td><td class="dotcell" id="dot-' + ec.id + '">●</td></tr>'
+        + '</table></div>';
+    });
+    html += '</div>';
+    // 2열: 렉시컬 환경 표
+    html += '<div class="cell-env"><div class="node" id="node-' + env.id + '">';
+    html += '<div id="note-' + env.id + '"></div>';
+    html += '<table class="tb env-tb"><thead><tr><th colspan="2">' + esc(env.label)
+      + '<span class="state-tag" id="tag-' + env.id + '"></span></th></tr></thead>';
+    env.records.forEach((rec) => {
+      html += '<tr><td>' + esc(rec.name) + '</td><td class="dotcell" id="dot-rec-' + rec.id + '">●</td></tr>';
+    });
+    html += '<tr><td>OuterLexicalEnvironment<br>Reference</td><td class="dotcell" id="dot-outer-' + env.id + '">●</td></tr>';
+    html += '</table>';
+    if (env.ths) html += '<div class="foot-note">' + esc(env.ths) + '</div>';
+    html += '</div></div>';
+    // 3열: 환경 레코드 표들
+    html += '<div class="cell-recs">';
+    env.records.forEach((rec) => {
+      html += '<div class="node-rec" id="node-' + rec.id + '" style="display:inline-block">'
+        + '<table class="tb rec-tb"><thead><tr><th colspan="2">' + esc(rec.name)
+        + '<span id="chip-' + rec.id + '"></span>'
+        + (rec.note ? '<small>' + esc(rec.note) + '</small>' : '') + '</th></tr></thead>';
+      if (rec.bindings.length) {
+        rec.bindings.forEach((b) => {
+          html += '<tr id="row-' + b.id + '"><td class="namecell">' + esc(b.name)
+            + '<span id="chip-' + b.id + '"></span></td>'
+            + '<td class="valcell" id="val-' + b.id + '">—</td></tr>';
+        });
+      } else {
+        html += '<tr><td colspan="2" class="null">(바인딩 없음)</td></tr>';
+      }
+      html += '</table></div>';
+    });
+    html += '</div>';
+    html += '</div>'; // band
+  });
+  html += '<div class="band"><div class="stack-label">실행 컨텍스트 스택 (아래가 바닥)</div><div></div><div></div></div>';
+  bands.innerHTML = html;
+}
+
+// 스텝 적용 — 값/상태/강조/화살표만 갱신
+function render() {
+  const step = cur.steps[stepIdx];
+
+  const pi = PHASE_INFO[step.phase];
+  $('phase').className = 'phase ' + pi.cls;
+  $('phase').innerHTML = pi.icon + ' ' + pi.label + ' <small>— ' + pi.sub + '</small>';
+
+  $('code').innerHTML = cur.code.map((line, i) => {
+    const hl = (step.line === i) ? ' hl-' + step.phase : '';
+    return '<div class="cl' + hl + '"><span class="ln">' + (i + 1) + '</span>' + (esc(line) || ' ') + '</div>';
+  }).join('');
+
+  $('console-lines').innerHTML = step.out.length
+    ? step.out.map((l) => l.startsWith('⛔')
+        ? '<div class="err">' + esc(l) + '</div>'
+        : '<div>' + esc(l) + '</div>').join('')
+    : '<div class="empty">(아직 출력 없음)</div>';
+
+  $('desc').innerHTML = step.desc;
+
+  // 강조/칩 초기화
+  document.querySelectorAll('.focus').forEach((el) => {
+    el.classList.remove('focus', 'f-miss', 'f-new');
+    el.style.removeProperty('--d');
+  });
+  document.querySelectorAll('[id^="chip-"]').forEach((el) => { el.innerHTML = ''; });
+
+  // 실행 컨텍스트 상태
+  cur.ecs.forEach((ec) => {
+    const node = $('node-' + ec.id);
+    const inStack = step.stack.includes(ec.id);
+    node.className = 'node' + (inStack ? '' : ' ghost');
+    $('tag-' + ec.id).textContent = inStack
+      ? (step.stack[step.stack.length - 1] === ec.id ? '' : '')
+      : '';
+  });
+
+  // 환경 상태 + 생존 노트
+  cur.envs.forEach((env) => {
+    const st = (step.envState && step.envState[env.id]) || 'live';
+    const node = $('node-' + env.id);
+    node.className = 'node' + (st === 'ghost' ? ' ghost' : st === 'dead' ? ' dead' : '');
+    const tag = $('tag-' + env.id);
+    tag.className = 'state-tag ' + st;
+    tag.textContent = st === 'ghost' ? '(생성 전)' : st === 'dead' ? '(소멸)' : '';
+    const note = (step.envNote && step.envNote[env.id]) || '';
+    $('note-' + env.id).innerHTML = note ? '<span class="alive-note">' + esc(note) + '</span>' : '';
+    // 레코드 표도 같은 상태를 따라간다
+    env.records.forEach((rec) => {
+      $('node-' + rec.id).className = 'node-rec node' + (st === 'ghost' ? ' ghost' : st === 'dead' ? ' dead' : '');
+    });
+  });
+
+  // 값 갱신
+  cur.envs.forEach((env) => {
+    env.records.forEach((rec) => {
+      rec.bindings.forEach((b) => {
+        $('val-' + b.id).innerHTML = fmtValue(step.vals[b.id]);
+      });
+    });
+  });
+
+  // 강조 적용 (순서대로 펄스 — 검색이 "흘러가는" 효과)
+  step.focus.forEach((f, i) => {
+    const el = $('row-' + f.id) || $('node-' + f.id);
+    if (!el) return;
+    el.classList.add('focus');
+    if (f.mark === 'miss') el.classList.add('f-miss');
+    if (f.mark === 'new') el.classList.add('f-new');
+    el.style.setProperty('--d', (i * 0.4) + 's');
+    if (f.mark) {
+      const chip = $('chip-' + f.id);
+      if (chip) chip.innerHTML = '<span class="chip ' + f.mark + '">' + CHIP_LABEL[f.mark] + '</span>';
+    }
+  });
+
+  // 컨트롤
+  $('btn-prev').disabled = stepIdx === 0;
+  $('btn-next').disabled = stepIdx === cur.steps.length - 1;
+  $('counter').textContent = (stepIdx + 1) + ' / ' + cur.steps.length;
+  $('dots').innerHTML = cur.steps.map((s, i) =>
+    '<span class="d-' + s.phase + (i === stepIdx ? ' on' : '') + '" data-i="' + i + '"></span>').join('');
+
+  drawArrows(step);
+
+  // iframe 임베드 시 부모에게 높이 전달
+  if (window.parent !== window) {
+    requestAnimationFrame(() => {
+      window.parent.postMessage({ type: 'demo-resize', height: document.body.scrollHeight }, '*');
+    });
+  }
+}
+
+// ── SVG 화살표 ──
+function drawArrows(step) {
+  const svg = $('arrows');
+  const dia = $('diagram');
+  const dr = dia.getBoundingClientRect();
+  svg.setAttribute('width', dia.scrollWidth);
+  svg.setAttribute('height', dia.scrollHeight);
+  const css = getComputedStyle(document.documentElement);
+  const cArrow = css.getPropertyValue('--arrow').trim();
+  const cPtr = css.getPropertyValue('--arrow-ptr').trim();
+
+  let defs = '<defs>'
+    + '<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+    + '<path d="M 0 0 L 10 5 L 0 10 z" fill="' + cArrow + '"/></marker>'
+    + '<marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+    + '<path d="M 0 0 L 10 5 L 0 10 z" fill="' + cPtr + '"/></marker>'
+    + '</defs>';
+  let paths = '';
+
+  function pos(el) {
+    const r = el.getBoundingClientRect();
+    return {
+      x1: r.left - dr.left, y1: r.top - dr.top,
+      x2: r.right - dr.left, y2: r.bottom - dr.top,
+      cy: r.top - dr.top + r.height / 2,
+    };
+  }
+  // from(점 셀) → to(박스) 곡선 화살표
+  function arrow(fromEl, toEl, color, marker, width) {
+    if (!fromEl || !toEl) return;
+    const f = pos(fromEl), t = pos(toEl);
+    const sx = f.x2 - 8, sy = f.cy;
+    let ex, ey;
+    if (t.x1 >= f.x2 - 4) { ex = t.x1 - 2; ey = Math.min(Math.max(sy, t.y1 + 12), t.y2 - 12); }
+    else { ex = t.x2 + 2; ey = t.y1 + 14; }
+    const dx = Math.max(30, Math.abs(ex - sx) / 2);
+    paths += '<circle cx="' + sx + '" cy="' + sy + '" r="3" fill="' + color + '"/>';
+    paths += '<path d="M ' + sx + ' ' + sy + ' C ' + (sx + dx) + ' ' + sy + ', '
+      + (ex - dx) + ' ' + ey + ', ' + ex + ' ' + ey + '" fill="none" stroke="' + color
+      + '" stroke-width="' + width + '" marker-end="url(#' + marker + ')"/>';
+  }
+
+  // 1) 실행 컨텍스트 → 환경 (LexicalEnvironment 포인터, 강조색)
+  step.stack.forEach((ecId) => {
+    const target = step.ptr[ecId];
+    if (target) arrow($('dot-' + ecId), $('node-' + target), cPtr, 'ah2', 2.2);
+  });
+  // 2) 환경 레코드 행 → 레코드 표 (구조 화살표)
+  cur.envs.forEach((env) => {
+    const st = (step.envState && step.envState[env.id]) || 'live';
+    if (st === 'ghost') return;
+    env.records.forEach((rec) => {
+      arrow($('dot-rec-' + rec.id), $('node-' + rec.id), cArrow, 'ah', 1.5);
+    });
+    // 3) outer 참조 → 바깥 환경
+    const outerTarget = step.ptr[env.id + '.outer'];
+    const dot = $('dot-outer-' + env.id);
+    if (outerTarget === null || outerTarget === undefined) {
+      if (dot) dot.textContent = 'null';
+      if (dot) dot.classList.add('null');
+    } else {
+      if (dot) { dot.textContent = '●'; dot.classList.remove('null'); }
+      arrow(dot, $('node-' + outerTarget), cArrow, 'ah', 1.5);
+    }
+  });
+
+  svg.innerHTML = defs + paths;
+}
+
+function selectScenario(id) {
+  cur = SCENARIOS.find((s) => s.id === id) || SCENARIOS[0];
+  stepIdx = 0;
+  $('scenario-select').value = cur.id;
+  $('subtitle').textContent = cur.subtitle;
+  buildDiagram();
+  render();
+}
+
+// 초기화
+const sel = $('scenario-select');
+SCENARIOS.forEach((s) => {
+  const opt = document.createElement('option');
+  opt.value = s.id;
+  opt.textContent = s.title;
+  sel.appendChild(opt);
+});
+sel.addEventListener('change', () => selectScenario(sel.value));
+$('btn-prev').addEventListener('click', () => { if (stepIdx > 0) { stepIdx--; render(); } });
+$('btn-next').addEventListener('click', () => { if (stepIdx < cur.steps.length - 1) { stepIdx++; render(); } });
+$('btn-reset').addEventListener('click', () => { stepIdx = 0; render(); });
+$('dots').addEventListener('click', (e) => {
+  if (e.target.dataset.i !== undefined) { stepIdx = +e.target.dataset.i; render(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && stepIdx > 0) { stepIdx--; render(); }
+  if (e.key === 'ArrowRight' && stepIdx < cur.steps.length - 1) { stepIdx++; render(); }
+});
+window.addEventListener('resize', () => drawArrows(cur.steps[stepIdx]));
+
+const param = new URLSearchParams(location.search).get('scenario');
+selectScenario(param || SCENARIOS[0].id);
+</script>
+</body>
+</html>
