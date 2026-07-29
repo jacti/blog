@@ -98,7 +98,7 @@
     .diagram-wrap { border: 1px solid var(--border); border-radius: 10px; background: var(--bg2); overflow-x: auto; }
     .diagram { position: relative; min-width: 780px; padding: 18px 18px 8px; }
     #arrows { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
-    .bands { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 30px; }
+    .bands { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 44px; }
     .band { display: grid; grid-template-columns: 205px minmax(250px, 300px) 1fr; gap: 56px; align-items: start; }
     .cell-ec { background: var(--stackcol-bg); border-radius: 8px; padding: 10px; min-height: 20px; align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
     .cell-recs { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
@@ -1028,6 +1028,22 @@ function drawArrows(step) {
       + (ex - dx) + ' ' + ey + ', ' + ex + ' ' + ey + '" fill="none" stroke="' + color
       + '" stroke-width="' + width + '" marker-end="url(#' + marker + ')"/>';
   }
+  // outer 참조 전용 계단형 화살표: 오른쪽 레인 → 아래 → 타깃 상단 진입
+  // k: 겹침 방지용 인덱스 (레인·진입 지점을 조금씩 어긋나게)
+  function outerArrow(fromEl, toEl, color, marker, width, k) {
+    if (!fromEl || !toEl) return;
+    const f = pos(fromEl), t = pos(toEl);
+    if (t.y1 < f.y2) { arrow(fromEl, toEl, color, marker, width); return; } // 위쪽 타깃은 곡선으로
+    const sx = f.x2 - 8, sy = f.cy;
+    const laneX = f.x2 + 14 + k * 10;   // 표 오른쪽의 세로 레인
+    const midY = t.y1 - 12 - k * 9;     // 타깃 위의 가로 레인
+    const ex = t.x1 + 34 + k * 26;      // 타깃 상단 진입 x
+    paths += '<circle cx="' + sx + '" cy="' + sy + '" r="3" fill="' + color + '"/>';
+    paths += '<path d="M ' + sx + ' ' + sy
+      + ' H ' + laneX + ' V ' + midY + ' H ' + ex + ' V ' + (t.y1 - 2)
+      + '" fill="none" stroke="' + color + '" stroke-width="' + width
+      + '" marker-end="url(#' + marker + ')"/>';
+  }
 
   // 1) 실행 컨텍스트 → 환경 (LexicalEnvironment 포인터, 강조색)
   step.stack.forEach((ecId) => {
@@ -1035,13 +1051,14 @@ function drawArrows(step) {
     if (target) arrow($('dot-' + ecId), $('node-' + target), cPtr, 'ah2', 2.2);
   });
   // 2) 환경 레코드 행 → 레코드 표 (구조 화살표)
+  let outerIdx = 0;
   cur.envs.forEach((env) => {
     const st = (step.envState && step.envState[env.id]) || 'live';
     if (st === 'ghost') return;
     env.records.forEach((rec) => {
       arrow($('dot-rec-' + rec.id), $('node-' + rec.id), cArrow, 'ah', 1.5);
     });
-    // 3) outer 참조 → 바깥 환경
+    // 3) outer 참조 → 바깥 환경 (계단형)
     const outerTarget = step.ptr[env.id + '.outer'];
     const dot = $('dot-outer-' + env.id);
     if (outerTarget === null || outerTarget === undefined) {
@@ -1049,7 +1066,7 @@ function drawArrows(step) {
       if (dot) dot.classList.add('null');
     } else {
       if (dot) { dot.textContent = '●'; dot.classList.remove('null'); }
-      arrow(dot, $('node-' + outerTarget), cArrow, 'ah', 1.5);
+      outerArrow(dot, $('node-' + outerTarget), cArrow, 'ah', 1.5, outerIdx++);
     }
   });
 
