@@ -560,10 +560,87 @@ const SCENARIOS = [
   ],
 },
 
-// ── 8. 중첩 함수 + [[Environment]] ─────────────────────────
+// ── 8. 호출한 곳 vs 선언된 곳 ──────────────────────────────
+{
+  id: 'lexical-call',
+  title: '8. 호출한 곳 vs 선언된 곳 — outer는 어디로 연결될까',
+  subtitle: 'chocoShop 안에서 printFlavor를 불러도, printFlavor의 outer는 자신이 선언된 전역이다. [[Environment]]가 그 증거.',
+  code: ["const flavor = '바닐라';", '', 'function printFlavor() {', '  console.log(flavor);', '}', '', 'function chocoShop() {', "  const flavor = '초코';", '  printFlavor();', '}', '', 'chocoShop();'],
+  ecs: [
+    { id: 'ecp', label: 'printFlavor 실행 컨텍스트', band: 'ep' },
+    { id: 'ecc', label: 'chocoShop 실행 컨텍스트', band: 'ec1' },
+    ECG,
+  ],
+  envs: [
+    { id: 'ep', label: 'printFlavor 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'rp', name: '함수 환경 레코드', bindings: [] }] },
+    { id: 'ec1', label: 'chocoShop 함수 렉시컬 환경', ths: '[[ThisValue]]: globalThis',
+      records: [{ id: 'rc', name: '함수 환경 레코드', bindings: [{ id: 'cf', name: 'flavor' }] }] },
+    genvDef(
+      [{ id: 'pf', name: 'printFlavor' }, { id: 'cs', name: 'chocoShop' }],
+      [{ id: 'gf', name: 'flavor' }]
+    ),
+  ],
+  steps: [
+    { phase: 'eval', line: 2, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null },
+      vals: { gf: TDZ, pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩' },
+      envState: { ep: 'ghost', ec1: 'ghost' },
+      focus: [{ id: 'pf', mark: 'new' }, { id: 'cs', mark: 'new' }, { id: 'gf', mark: 'new' }],
+      desc: '평가 단계: 두 함수 객체가 생성된다. 둘 다 <b>전역에서 선언</b>됐으므로 <code>[[Environment]] ← 전역 환경</code>. 여기가 이 시나리오의 승부처다 — printFlavor는 자신이 <b>어디서 호출될지는 모른다</b>. 어디서 태어났는지만 안다.' },
+    { phase: 'run', line: 0, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩' },
+      envState: { ep: 'ghost', ec1: 'ghost' },
+      focus: [{ id: 'gf', mark: 'chg' }],
+      desc: '전역 <code>flavor = \'바닐라\'</code> 초기화.' },
+    { phase: 'run', line: 11, out: [], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩' },
+      envState: { ep: 'ghost', ec1: 'ghost' },
+      focus: [{ id: 'go', mark: 'hit' }, { id: 'cs', mark: 'read' }],
+      desc: '<code>chocoShop()</code> 호출.' },
+    { phase: 'eval', line: 7, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec1', 'ec1.outer': 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩', cf: TDZ },
+      envState: { ep: 'ghost' },
+      focus: [{ id: 'ecc' }, { id: 'ec1' }, { id: 'cf', mark: 'new' }],
+      desc: 'chocoShop 실행 컨텍스트 push. chocoShop 환경에 <b>자기만의 <code>flavor</code></b>가 등록된다. outer ← <code>chocoShop.[[Environment]]</code> = 전역.' },
+    { phase: 'run', line: 7, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec1', 'ec1.outer': 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩', cf: "'초코'" },
+      envState: { ep: 'ghost' },
+      focus: [{ id: 'cf', mark: 'chg' }],
+      desc: '<code>flavor = \'초코\'</code> 초기화. 함정 완성 — 이제 chocoShop 환경에는 <code>flavor: \'초코\'</code>가 살아있다. 과연 printFlavor는 이걸 보게 될까?' },
+    { phase: 'run', line: 8, out: [], stack: ['ecg', 'ecc'],
+      ptr: { ecg: 'eg', ecc: 'ec1', 'ec1.outer': 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩', cf: "'초코'" },
+      envState: { ep: 'ghost' },
+      focus: [{ id: 'rc', mark: 'miss' }, { id: 'go', mark: 'hit' }, { id: 'pf', mark: 'read' }],
+      desc: '<code>printFlavor</code> 검색: chocoShop 환경 ✗ → 전역 객체 환경 레코드 ✓ → 함수 객체 발견, 호출 준비. (호출 <b>자체</b>는 평범한 스코프 체인 검색이다)' },
+    { phase: 'eval', line: 3, out: [], stack: ['ecg', 'ecc', 'ecp'],
+      ptr: { ecg: 'eg', ecc: 'ec1', ecp: 'ep', 'ep.outer': 'eg', 'ec1.outer': 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩', cf: "'초코'" },
+      focus: [{ id: 'ecp' }, { id: 'ep' }],
+      desc: '<b>핵심 장면.</b> printFlavor 실행 컨텍스트 push. outer 참조 ← <code>printFlavor.[[Environment]]</code> = <b>전역 환경</b>. 화살표를 보라 — <b>호출한 chocoShop 환경을 건너뛰고</b> 곧장 전역으로 연결된다. 호출 스택(왼쪽)은 전역→chocoShop→printFlavor 순서인데, 환경 체인은 printFlavor→전역이다. <b>둘은 다른 것이다.</b>' },
+    { phase: 'run', line: 3, out: ['바닐라'], stack: ['ecg', 'ecc', 'ecp'],
+      ptr: { ecg: 'eg', ecc: 'ec1', ecp: 'ep', 'ep.outer': 'eg', 'ec1.outer': 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩', cf: "'초코'" },
+      focus: [{ id: 'rp', mark: 'miss' }, { id: 'gd', mark: 'hit' }, { id: 'gf', mark: 'read' }],
+      desc: '<code>flavor</code> 검색: printFlavor 환경 ✗ → outer(전역) → 선언적 환경 레코드 ✓ → <b>\'바닐라\'</b> 출력! chocoShop의 <code>\'초코\'</code>는 체인에 없어서 <b>검색 후보조차 아니다</b>. 만약 outer가 "호출한 곳"이었다면(동적 스코프) \'초코\'가 나왔을 것이다.' },
+    { phase: 'run', line: 9, out: ['바닐라'], stack: ['ecg'],
+      ptr: { ecg: 'eg', 'eg.outer': null },
+      vals: { gf: "'바닐라'", pf: 'ƒ printFlavor ⟨[[Environment]]→전역⟩', cs: 'ƒ chocoShop ⟨[[Environment]]→전역⟩' },
+      envState: { ep: 'dead', ec1: 'dead' },
+      focus: [],
+      desc: 'printFlavor pop → chocoShop pop → 전역만 남고 종료. 정리: <b>어디서 호출됐는지는 스택이 기억하고, 어디를 참조할지는 [[Environment]]가 기억한다.</b> 자바스크립트가 렉시컬 스코프인 이유가 이 한 줄이다.' },
+  ],
+},
+
+// ── 9. 중첩 함수 + [[Environment]] ─────────────────────────
 {
   id: 'nested-fn',
-  title: '8. 중첩 함수와 [[Environment]] 내부 슬롯',
+  title: '9. 중첩 함수와 [[Environment]] 내부 슬롯',
   subtitle: '함수 객체는 태어날 때 자신이 만들어진 환경을 [[Environment]]에 기억하고, 호출될 때 그것을 outer로 삼는다.',
   code: ["const x = 'global';", '', 'function outer() {', "  const y = 'outer';", '  function inner() {', '    console.log(y);', '    console.log(x);', '  }', '  inner();', '}', '', 'outer();'],
   ecs: [
@@ -642,10 +719,10 @@ const SCENARIOS = [
   ],
 },
 
-// ── 9. 클로저 예고편 ───────────────────────────────────────
+// ── 10. 클로저 예고편 ──────────────────────────────────────
 {
   id: 'closure',
-  title: '9. 예고편: pop 됐는데 살아남는 환경 (클로저)',
+  title: '10. 예고편: pop 됐는데 살아남는 환경 (클로저)',
   subtitle: '실행 컨텍스트가 pop돼도, 반환된 함수의 [[Environment]]가 참조하는 환경은 소멸하지 않는다.',
   code: ['function counter() {', '  let n = 0;', '  return function () {', '    n += 1;', '    return n;', '  };', '}', '', 'const inc = counter();', 'console.log(inc());', 'console.log(inc());'],
   ecs: [

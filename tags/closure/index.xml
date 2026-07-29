@@ -607,8 +607,39 @@ title="Copy code"
 &lt;iframe id="sim-b" src="https://blog.girae.me/demos/ch23-execution-context/?scenario=lookup" style="width:100%;border:none;border-radius:12px;min-height:900px;margin:1rem 0;" loading="lazy">&lt;/iframe>
 &lt;hr>
 &lt;h2>파트 C. 함수와 [[Environment]]&lt;span class="hx:absolute hx:-mt-20" id="파트-c-함수와-environment">&lt;/span>
-&lt;a href="#%ed%8c%8c%ed%8a%b8-c-%ed%95%a8%ec%88%98%ec%99%80-environment" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;h3>8. 함수는 태어난 곳을 기억한다&lt;span class="hx:absolute hx:-mt-20" id="8-함수는-태어난-곳을-기억한다">&lt;/span>
-&lt;a href="#8-%ed%95%a8%ec%88%98%eb%8a%94-%ed%83%9c%ec%96%b4%eb%82%9c-%ea%b3%b3%ec%9d%84-%ea%b8%b0%ec%96%b5%ed%95%9c%eb%8b%a4" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;a href="#%ed%8c%8c%ed%8a%b8-c-%ed%95%a8%ec%88%98%ec%99%80-environment" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h2>&lt;h3>8. 호출한 곳이 아니라 선언된 곳&lt;span class="hx:absolute hx:-mt-20" id="8-호출한-곳이-아니라-선언된-곳">&lt;/span>
+&lt;a href="#8-%ed%98%b8%ec%b6%9c%ed%95%9c-%ea%b3%b3%ec%9d%b4-%ec%95%84%eb%8b%88%eb%9d%bc-%ec%84%a0%ec%96%b8%eb%90%9c-%ea%b3%b3" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">flavor&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s1">&amp;#39;바닐라&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">printFlavor&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">console&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">log&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">flavor&lt;/span>&lt;span class="p">);&lt;/span> &lt;span class="c1">// 이 flavor는 어디의 flavor일까?
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">chocoShop&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kr">const&lt;/span> &lt;span class="nx">flavor&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s1">&amp;#39;초코&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nx">printFlavor&lt;/span>&lt;span class="p">();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nx">chocoShop&lt;/span>&lt;span class="p">();&lt;/span> &lt;span class="c1">// 바닐라 — &amp;#39;초코&amp;#39;가 아니다!
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+>
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4">&lt;/div>
+&lt;/button>
+&lt;/div>
+&lt;/div>
+&lt;p>&lt;code>printFlavor&lt;/code>는 &lt;code>chocoShop&lt;/code> &lt;strong>안에서&lt;/strong> 호출됐고, 그 순간 chocoShop의 환경에는 &lt;code>flavor: '초코'&lt;/code>가 분명히 살아있어요. 그런데도 출력은 &lt;code>바닐라&lt;/code>입니다. 이유는 함수의 outer 참조가 &lt;strong>호출한 곳이 아니라 선언된 곳&lt;/strong>으로 연결되기 때문이에요.&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>printFlavor&lt;/code> 함수 객체가 &lt;strong>생성되는 순간&lt;/strong>(전역 코드의 평가 단계), &lt;code>printFlavor.[[Environment]] ← 전역 환경&lt;/code>이 저장됩니다. 이 함수는 자신이 어디서 호출될지는 몰라요. &lt;strong>어디서 태어났는지만 압니다.&lt;/strong>&lt;/li>
+&lt;li>호출되는 순간, printFlavor의 렉시컬 환경이 만들어지면서 outer 자리에 그 &lt;code>[[Environment]]&lt;/code>가 꽂혀요. 그래서 환경 체인은 printFlavor → &lt;strong>전역&lt;/strong>. chocoShop의 환경은 &lt;strong>체인에 없어서 검색 후보조차 아닙니다.&lt;/strong>&lt;/li>
+&lt;/ul>
+&lt;p>아래 시뮬레이터에서 이 장면을 보면 왼쪽 호출 스택은 전역 → chocoShop → printFlavor 3층인데, printFlavor의 outer 화살표는 chocoShop을 &lt;strong>건너뛰고&lt;/strong> 전역에 꽂혀요. &lt;strong>어디서 호출됐는지는 스택이 기억하고, 어디를 참조할지는 [[Environment]]가 기억한다&lt;/strong> — 자바스크립트가 렉시컬 스코프인 이유가 이 한 줄입니다. (만약 outer가 &amp;ldquo;호출한 곳&amp;quot;이었다면 — 그런 언어를 동적 스코프라고 불러요 — &lt;code>초코&lt;/code>가 나왔을 거예요.)&lt;/p>
+&lt;iframe id="sim-d" src="https://blog.girae.me/demos/ch23-execution-context/?scenario=lexical-call" style="width:100%;border:none;border-radius:12px;min-height:1000px;margin:1rem 0;" loading="lazy">&lt;/iframe>
+&lt;h3>9. 함수는 태어난 곳을 기억한다 — 중첩 함수&lt;span class="hx:absolute hx:-mt-20" id="9-함수는-태어난-곳을-기억한다--중첩-함수">&lt;/span>
+&lt;a href="#9-%ed%95%a8%ec%88%98%eb%8a%94-%ed%83%9c%ec%96%b4%eb%82%9c-%ea%b3%b3%ec%9d%84-%ea%b8%b0%ec%96%b5%ed%95%9c%eb%8b%a4--%ec%a4%91%ec%b2%a9-%ed%95%a8%ec%88%98" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
 &lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kr">const&lt;/span> &lt;span class="nx">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s1">&amp;#39;global&amp;#39;&lt;/span>&lt;span class="p">;&lt;/span>
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">outer&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
@@ -635,8 +666,8 @@ title="Copy code"
 &lt;li>&lt;strong>&lt;code>inner&lt;/code> 함수 객체가 생성되는 순간&lt;/strong> (outer 몸통의 평가 단계) — &lt;code>inner.[[Environment]] ← 현재(outer의) 렉시컬 환경&lt;/code>이 저장된다. &lt;strong>어디서 호출될지와 무관하게 지금 결정된다.&lt;/strong> 이것이 렉시컬 스코프의 실체.&lt;/li>
 &lt;li>&lt;strong>&lt;code>inner()&lt;/code>가 호출되는 순간&lt;/strong> — inner의 렉시컬 환경이 새로 만들어지면서, outer 참조 자리에 &lt;code>inner.[[Environment]]&lt;/code>에 저장해둔 값이 꽂힌다. 체인이 inner → outer → 전역으로 &lt;strong>실시간 조립&lt;/strong>된다.&lt;/li>
 &lt;/ol>
-&lt;h3>9. 예고편: pop 됐는데 살아남는 환경&lt;span class="hx:absolute hx:-mt-20" id="9-예고편-pop-됐는데-살아남는-환경">&lt;/span>
-&lt;a href="#9-%ec%98%88%ea%b3%a0%ed%8e%b8-pop-%eb%90%90%eb%8a%94%eb%8d%b0-%ec%82%b4%ec%95%84%eb%82%a8%eb%8a%94-%ed%99%98%ea%b2%bd" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+&lt;h3>10. 예고편: pop 됐는데 살아남는 환경&lt;span class="hx:absolute hx:-mt-20" id="10-예고편-pop-됐는데-살아남는-환경">&lt;/span>
+&lt;a href="#10-%ec%98%88%ea%b3%a0%ed%8e%b8-pop-%eb%90%90%eb%8a%94%eb%8d%b0-%ec%82%b4%ec%95%84%eb%82%a8%eb%8a%94-%ed%99%98%ea%b2%bd" class="subheading-anchor" aria-label="Permalink for this section">&lt;/a>&lt;/h3>&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
 &lt;div>&lt;div class="highlight">&lt;pre tabindex="0" class="chroma">&lt;code class="language-js" data-lang="js">&lt;span class="line">&lt;span class="cl">&lt;span class="kd">function&lt;/span> &lt;span class="nx">counter&lt;/span>&lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="kd">let&lt;/span> &lt;span class="nx">n&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span>
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="kd">function&lt;/span> &lt;span class="p">()&lt;/span> &lt;span class="p">{&lt;/span>
@@ -663,7 +694,7 @@ title="Copy code"
 &lt;script>
 window.addEventListener('message', function (e) {
 if (!e.data || e.data.type !== 'demo-resize') return;
-['sim-a', 'sim-b', 'sim-c'].forEach(function (id) {
+['sim-a', 'sim-b', 'sim-c', 'sim-d'].forEach(function (id) {
 var f = document.getElementById(id);
 if (f &amp;&amp; f.contentWindow === e.source) f.style.height = (e.data.height + 16) + 'px';
 });
@@ -690,7 +721,8 @@ if (f &amp;&amp; f.contentWindow === e.source) f.style.height = (e.data.height +
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/002-const-tdz.js &lt;span class="c1"># ReferenceError 메시지 확인&lt;/span>
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/006a-let-then-var.js &lt;span class="c1"># 첫 줄도 출력 안 되는 SyntaxError&lt;/span>
 &lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/009-closure-preview.js &lt;span class="c1"># 1, 2, 3&lt;/span>
-&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/010-global-binding-check.js &lt;span class="c1"># var만 globalThis에 붙는다&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/010-global-binding-check.js &lt;span class="c1"># var만 globalThis에 붙는다&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">node examples/ch23/011-call-site-vs-birthplace.js &lt;span class="c1"># 초코 가게에서 불러도 바닐라&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;/div>&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0">
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
