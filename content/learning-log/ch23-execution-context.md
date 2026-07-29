@@ -167,7 +167,33 @@ console.log(x); // 1
 
 ## 파트 C. 함수와 [[Environment]]
 
-### 8. 함수는 태어난 곳을 기억한다
+### 8. 호출한 곳이 아니라 선언된 곳
+
+```js
+const flavor = '바닐라';
+
+function printFlavor() {
+  console.log(flavor); // 이 flavor는 어디의 flavor일까?
+}
+
+function chocoShop() {
+  const flavor = '초코';
+  printFlavor();
+}
+
+chocoShop(); // 바닐라 — '초코'가 아니다!
+```
+
+`printFlavor`는 `chocoShop` **안에서** 호출됐고, 그 순간 chocoShop의 환경에는 `flavor: '초코'`가 분명히 살아있어요. 그런데도 출력은 `바닐라`입니다. 이유는 함수의 outer 참조가 **호출한 곳이 아니라 선언된 곳**으로 연결되기 때문이에요.
+
+- `printFlavor` 함수 객체가 **생성되는 순간**(전역 코드의 평가 단계), `printFlavor.[[Environment]] ← 전역 환경`이 저장됩니다. 이 함수는 자신이 어디서 호출될지는 몰라요. **어디서 태어났는지만 압니다.**
+- 호출되는 순간, printFlavor의 렉시컬 환경이 만들어지면서 outer 자리에 그 `[[Environment]]`가 꽂혀요. 그래서 환경 체인은 printFlavor → **전역**. chocoShop의 환경은 **체인에 없어서 검색 후보조차 아닙니다.**
+
+아래 시뮬레이터에서 이 장면을 보면 왼쪽 호출 스택은 전역 → chocoShop → printFlavor 3층인데, printFlavor의 outer 화살표는 chocoShop을 **건너뛰고** 전역에 꽂혀요. **어디서 호출됐는지는 스택이 기억하고, 어디를 참조할지는 [[Environment]]가 기억한다** — 자바스크립트가 렉시컬 스코프인 이유가 이 한 줄입니다. (만약 outer가 "호출한 곳"이었다면 — 그런 언어를 동적 스코프라고 불러요 — `초코`가 나왔을 거예요.)
+
+<iframe id="sim-d" src="/demos/ch23-execution-context/?scenario=lexical-call" style="width:100%;border:none;border-radius:12px;min-height:1000px;margin:1rem 0;" loading="lazy"></iframe>
+
+### 9. 함수는 태어난 곳을 기억한다 — 중첩 함수
 
 ```js
 const x = 'global';
@@ -189,7 +215,7 @@ outer();
 1. **`inner` 함수 객체가 생성되는 순간** (outer 몸통의 평가 단계) — `inner.[[Environment]] ← 현재(outer의) 렉시컬 환경`이 저장된다. **어디서 호출될지와 무관하게 지금 결정된다.** 이것이 렉시컬 스코프의 실체.
 2. **`inner()`가 호출되는 순간** — inner의 렉시컬 환경이 새로 만들어지면서, outer 참조 자리에 `inner.[[Environment]]`에 저장해둔 값이 꽂힌다. 체인이 inner → outer → 전역으로 **실시간 조립**된다.
 
-### 9. 예고편: pop 됐는데 살아남는 환경
+### 10. 예고편: pop 됐는데 살아남는 환경
 
 ```js
 function counter() {
@@ -212,7 +238,7 @@ console.log(inc()); // 2 — n이 살아있다!
 <script>
 window.addEventListener('message', function (e) {
   if (!e.data || e.data.type !== 'demo-resize') return;
-  ['sim-a', 'sim-b', 'sim-c'].forEach(function (id) {
+  ['sim-a', 'sim-b', 'sim-c', 'sim-d'].forEach(function (id) {
     var f = document.getElementById(id);
     if (f && f.contentWindow === e.source) f.style.height = (e.data.height + 16) + 'px';
   });
@@ -242,6 +268,7 @@ node examples/ch23/002-const-tdz.js           # ReferenceError 메시지 확인
 node examples/ch23/006a-let-then-var.js       # 첫 줄도 출력 안 되는 SyntaxError
 node examples/ch23/009-closure-preview.js     # 1, 2, 3
 node examples/ch23/010-global-binding-check.js # var만 globalThis에 붙는다
+node examples/ch23/011-call-site-vs-birthplace.js # 초코 가게에서 불러도 바닐라
 ```
 
 특히 006a는 꼭 직접 돌려보세요. "코드가 한 줄도 실행되지 않는 에러"를 눈으로 보면 평가/실행 분리가 체감됩니다.
